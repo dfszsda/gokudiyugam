@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">गोकुडीयुगम</string>
+    <string name="welcome_text">गोकुडीयुगम</string>
+    <string name="select_language">भाषा चुनें</string>
+    <string name="english">अंग्रेजी</string>
+    <string name="gujarati">गुजराती</string>
+    <string name="hindi">हिंदी</string>
+    <string name="main_welcome">गोकुडीयुगम में आपका स्वागत है!</string>
+
+    <!-- Role Selection -->
+    <string name="join_community">हमारे समुदाय से जुड़ें</string>
+    <string name="welcome_back">वापस स्वागत है</string>
+    <string name="choose_role_signup">खाता बनाने के लिए अपनी भूमिका चुनें</string>
+    <string name="choose_role_login">अपनी यात्रा जारी रखने के लिए अपनी भूमिका चुनें</string>
+    <string name="host_user">मेजबान उपयोगकर्ता</string>
+    <string name="host_desc">ईवेंट और सामग्री प्रबंधित करें</string>
+    <string name="normal_user">सामान्य उपयोगकर्ता</string>
+    <string name="normal_desc">सभी सदस्य सुविधाओं तक पहुँचें</string>
+    <string name="guest_user">अतिथि उपयोगकर्ता</string>
+    <string name="guest_desc">एक आगंतुक के रूप में अन्वेषण करें</string>
+    <string name="mandir_name">BAPS मंदिर बादलपुर</string>
+
+    <!-- Login/Signup -->
+    <string name="username">उपयोगकर्ता नाम</string>
+    <string name="password">पासवर्ड</string>
+    <string name="confirm_password">पासवर्ड की पुष्टि करें</string>
+    <string name="sign_in">साइन इन करें</string>
+    <string name="sign_up">साइन अप करें</string>
+    <string name="login">लॉगिन</string>
+    <string name="create_account">खाता बनाएँ</string>
+    <string name="new_here_signup">यहाँ नए हैं? खाता बनाएँ</string>
+    <string name="already_have_account">पहले से ही खाता है? साइन इन करें</string>
+    <string name="do_you_have_account">क्या आपके पास खाता है?</string>
+    <string name="dont_have_account">खाता नहीं है?</string>
+    <string name="change_role">भूमिका बदलें</string>
+    <string name="joining_as">के रूप में जुड़ रहे हैं: %1$s</string>
+    <string name="guest_mode">अतिथि मोड</string>
+    <string name="quick_create">त्वरित निर्माण</string>
+    <string name="back_to_selection">चयन पर वापस जाएं</string>
+    <string name="back_to_login">लॉगिन पर वापस जाएं</string>
+    <string name="error_credentials">कृपया दोनों क्रेडेंशियल दर्ज करें</string>
+    <string name="error_not_found">खाता \'%1$s\' नहीं मिला</string>
+    <string name="error_exists">खाता \'%1$s\' पहले से मौजूद है</string>
+    <string name="error_password_match">पासवर्ड मेल नहीं खाते</string>
+    <string name="error_invalid_password">अमान्य पासवर्ड</string>
+    <string name="error_role_mismatch">यह खाता %1$s के रूप में पंजीकृत है</string>
+    <string name="error_enter_username">कृपया उपयोगकर्ता नाम दर्ज करें</string>
+    <string name="error_check_inputs">अपने इनपुट की जाँच करें</string>
+
+    <!-- Home -->
+    <string name="baps_mandal">BAPS श्री स्वामीनारायण मंदिर</string>
+    <string name="badalpur">बादलपुर</string>
+    <string name="jay_swaminarayan">जय स्वामीनारायण</string>
+    <string name="welcome_spiritual_home">अपने आध्यात्मिक घर में आपका स्वागत है</string>
+    <string name="quick_services">त्वरित सेवाएँ</string>
+    <string name="see_all">सभी देखें</string>
+    <string name="daily_darshan">दैनिक दर्शन</string>
+    <string name="morning_darshan">सुबह के दर्शन</string>
+    <string name="kirtan">कीर्तन</string>
+    <string name="devotional_songs">भक्ति गीत</string>
+    <string name="sabha">सभा</string>
+    <string name="weekly_schedule">साप्ताहिक कार्यक्रम</string>
+    <string name="functions">उत्सव</string>
+    <string name="upcoming_events">आगामी कार्यक्रम</string>
+    <string name="satsang_news">सभा सार</string>
+    <string name="latest_updates">नवीनतम अपडेट</string>
+    <string name="settings">सेटिंग्स</string>
+    <string name="preferences">प्राथमिकताएँ</string>
+    <string name="logout">लॉगआउट</string>
+
+    <!-- Daily Darshan -->
+    <string name="darshan_desc">भगवान स्वामीनारायण और गुरु परंपरा के धन्य दर्शन।</string>
+    <string name="mandir_darshan">मंदिर दर्शन</string>
+    <string name="puja_darshan">पूजा दर्शन</string>
+    <string name="guruhari_darshan">गुरुहरि दर्शन</string>
+    <string name="festivals">उत्सव</string>
+
+    <!-- Settings -->
+    <string name="preview">पूर्वावलोकन</string>
+    <string name="appearance">दिखावट</string>
+    <string name="dark_mode">डार्क मोड</string>
+    <string name="background_color">पृष्ठभूमि रंग</string>
+    <string name="default_label">डिफ़ॉल्ट</string>
+    <string name="custom_label">कस्टम</string>
+    <string name="account_security">खाता और सुरक्षा</string>
+    <string name="change_password">पासवर्ड बदलें</string>
+    <string name="update_password_desc">अपना खाता पासवर्ड अपडेट करें</string>
+    <string name="language">भाषा</string>
+    <string name="app_language">एप्लिकेशन भाषा</string>
+    <string name="version">संस्करण 1.5.62</string>
+    <string name="choose_bg_color">पृष्ठभूमि रंग चुनें</string>
+    <string name="old_password">पुराना पासवर्ड</string>
+    <string name="new_password">नया पासवर्ड</string>
+    <string name="confirm_new_password">नये पासवर्ड की पुष्टि करें</string>
+    <string name="update">अपडेट करें</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="error_not_logged_in">लॉग इन नहीं है</string>
+    <string name="error_incorrect_old_password">गलत पुराना पासवर्ड</string>
+    <string name="error_password_too_short">पासवर्ड बहुत छोटा है</string>
+    <string name="color_light_red">हल्का लाल</string>
+    <string name="color_light_blue">हल्का नीला</string>
+    <string name="color_light_green">हल्का हरा</string>
+    <string name="color_light_yellow">हल्का पीला</string>
+    <string name="color_light_purple">हल्का बैंगनी</string>
+
+    <!-- Kirtan Screen -->
+    <string name="kirtan_muktavali">कीर्तन मुक्तावली</string>
+    <string name="back">पीछे</string>
+    <string name="kirtan_header_text">दिव्य संगीत और भक्ति भजनों के माध्यम से शांति पाएं।</string>
+    <string name="kirtan_category_arati">आरती</string>
+    <string name="kirtan_category_thal">थाल</string>
+    <string name="kirtan_category_dhun">धुन</string>
+    <string name="kirtan_category_prathana">प्रार्थना</string>
+    <string name="kirtan_category_bhajan">भजन</string>
+    <string name="kirtan_category_puja_vidhi">पूजा विधि</string>
+    <string name="kirtan_category_others">अन्य</string>
+    <string name="kirtan_category_favorite">पसंदीदा</string>
+    <string name="coming_soon">जल्द आ रहा है...</string>
+    <string name="kirtan_player">कीर्तन प्लेयर</string>
+    <string name="arati_morning">सुबह की आरती</string>
+    <string name="arati_evening">शाम की आरती</string>
+    <string name="playing">चल रहा है</string>
+    <string name="paused">रुका हुआ</string>
+    <string name="stopped">बंद</string>
+    <string name="now_playing">अभी चल रहा है</string>
+
+    <!-- Sabha Timetable Screen -->
+    <string name="sabha_schedule">सभा समय सारिणी</string>
+    <string name="sabha_header_text">साप्ताहिक सत्संग सभाओं के माध्यम से मूल्यों का पोषण।</string>
+    <string name="sabha_sanyukt">संयुक्त सभा</string>
+    <string name="sabha_sanyukt_time">रविवार, शाम 8:30 बजे</string>
+    <string name="sabha_yuva_yuvati">युवा/युवती सभा</string>
+    <string name="sabha_yuva_yuvati_time">शनिवार, शाम 8:30 बजे</string>
+    <string name="sabha_bal_balika">बाल/बालिका सभा</string>
+    <string name="sabha_bal_balika_time">रविवार, शाम 4:00 बजे</string>
+    <string name="sabha_yst_bss">YST/BSS</string>
+    <string name="sabha_yst_bss_time">शुक्रवार, रात 9:00 बजे</string>
+    <string name="sabha_mahila">महिला सभा</string>
+    <string name="sabha_mahila_time">शनिवार, शाम 4:00 बजे</string>
+
+    <!-- Puja Darshan -->
+    <string name="edit_link">लिंक संपादित करें</string>
+    <string name="save_link">लिंक सहेजें</string>
+    <string name="youtube_live_link">यूट्यूब लाइव लिंक</string>
+    <string name="link_updated">लिंक अपडेट किया गया</string>
+    <string name="no_live_stream">फिलहाल कोई लाइव स्ट्रीम उपलब्ध नहीं है।\nकृपया बाद में देखें।</string>
+
+    <!-- Functions -->
+    <string name="upcoming_functions">आगामी उत्सव</string>
+    <string name="add_function">उत्सव जोड़ें</string>
+    <string name="functions_header_text">सभी आध्यात्मिक उत्सवों और कार्यक्रमों से जुड़े रहें।</string>
+    <string name="no_events_scheduled">कोई कार्यक्रम निर्धारित नहीं है</string>
+    <string name="add_new_function">नया उत्सव जोड़ें</string>
+    <string name="event_name">कार्यक्रम का नाम</string>
+    <string name="video_url_optional">वीडियो URL (वैकल्पिक)</string>
+    <string name="select_time">समय चुनें</string>
+    <string name="auto_delete_time">ऑटो डिलीट समय</string>
+    <string name="add">जोड़ें</string>
+    <string name="ok">ठीक है</string>
+    <string name="event_details_placeholder">इस दिव्य उत्सव में हमारे साथ जुड़ें। अधिक विवरण जल्द ही साझा किए जाएंगे।</string>
+    <string name="awesome">बहुत बढ़िया</string>
+    <string name="delete">हटाएं</string>
+    <string name="ends_at">%1$s बजे समाप्त होता है</string>
+
+    <!-- Festivals -->
+    <string name="photo">फोटो</string>
+    <string name="video">वीडियो</string>
+    <string name="upload_photo">फोटो अपलोड करें</string>
+    <string name="upload_video">वीडियो अपलोड करें</string>
+    <string name="festivals_desc">हमारे उत्सवों की दिव्य यादों को फिर से जिएं।</string>
+    <string name="secured_ai">AI सुरक्षित पहुँच</string>
+    <string name="verifying_ai">AI आपकी पहुँच की पुष्टि कर रहा है...</string>
+    <string name="ai_verified">AI सत्यापित</string>
+    <string name="ai_denied">AI द्वारा पहुँच अस्वीकार</string>
+</resources>

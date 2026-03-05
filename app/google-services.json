@@ -1,0 +1,56 @@
+{
+  "project_info": {
+    "project_number": "728177722635",
+    "firebase_url": "https://gokudiyugam-default-rtdb.firebaseio.com",
+    "project_id": "gokudiyugam",
+    "storage_bucket": "gokudiyugam.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:728177722635:android:413efd437a7a5c9f0ace0e",
+        "android_client_info": {
+          "package_name": "com.example.gokudiyugam"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "728177722635-buhq6s4f6ak5bc2r363dar9s5do84n7l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.gokudiyugam",
+            "certificate_hash": "4ec13958649f81d0c48043ca8e9f10ab7919a331"
+          }
+        },
+        {
+          "client_id": "728177722635-t86t4mfqu74061aj43sadocr0gv9junf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.gokudiyugam",
+            "certificate_hash": "f70cda3757fa0cbd99bd002f0837ceb26aed787d"
+          }
+        },
+        {
+          "client_id": "728177722635-u2gatdgb305ga6gbt6viabml4d8hv3gc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEfon79kgebeUDNTjYSoCOctxH90cEWjI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "728177722635-u2gatdgb305ga6gbt6viabml4d8hv3gc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

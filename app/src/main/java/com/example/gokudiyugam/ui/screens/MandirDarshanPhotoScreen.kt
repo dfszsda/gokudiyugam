@@ -1,0 +1,299 @@
+package com.example.gokudiyugam.ui.screens
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.ContentValues
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberAsyncImagePainter
+import com.example.gokudiyugam.PreferenceManager
+import com.example.gokudiyugam.R
+import com.example.gokudiyugam.drive.DriveHelper
+import com.example.gokudiyugam.drive.DriveViewModel
+import com.example.gokudiyugam.model.UserRole
+import com.example.gokudiyugam.model.MediaItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MandirDarshanPhotoScreen(
+    preferenceManager: PreferenceManager,
+    currentUserRole: UserRole?,
+    onBack: () -> Unit,
+    driveViewModel: DriveViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    // Fetch data from Firestore instead of local preference
+    val photos = driveViewModel.currentCategoryItems
+    val isFetching = driveViewModel.isFetching
+    val isUploading = driveViewModel.isUploading
+    val driveHelper = driveViewModel.driveHelper
+
+    var selectedPhoto by remember { mutableStateOf<MediaItem?>(null) }
+    
+    val currentUsername = preferenceManager.getCurrentUsername() ?: ""
+    val canEdit = currentUserRole == UserRole.HOST ||
+                 (currentUserRole == UserRole.SUB_HOST && preferenceManager.hasPermission(currentUsername, "screen_mandir_darshan"))
+
+    // Fetch photos on launch
+    LaunchedEffect(Unit) {
+        driveViewModel.fetchCategoryItems("mandir_darshan")
+    }
+
+    val signInLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        driveViewModel.handleSignInResult(context, result)
+    }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            driveViewModel.uploadToCategory(
+                context = context,
+                uri = it,
+                title = "Mandir Darshan ${System.currentTimeMillis()}",
+                driveType = "photo",
+                category = "mandir_darshan"
+            )
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.mandir_darshan), fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        },
+        floatingActionButton = {
+            if (canEdit) {
+                if (driveHelper == null) {
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            val signInClient = DriveHelper.getGoogleSignInClient(context)
+                            signInLauncher.launch(signInClient.signInIntent)
+                        },
+                        icon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
+                        text = { Text("Sign in to Post") }
+                    )
+                } else {
+                    FloatingActionButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Photo")
+                    }
+                }
+            }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            if (isFetching && photos.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (photos.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "No photos added yet.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 128.dp),
+                    modifier = Modifier.fillMaxSize().padding(4.dp)
+                ) {
+                    items(photos) { photoItem ->
+                        Card(
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .aspectRatio(1f)
+                                .clickable { selectedPhoto = photoItem },
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(photoItem.url),
+                                contentDescription = photoItem.title,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (isUploading) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Uploading to Drive...", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        if (selectedPhoto != null) {
+            AlertDialog(
+                onDismissRequest = { selectedPhoto = null },
+                confirmButton = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        // Everyone can download
+                        TextButton(onClick = {
+                            scope.launch {
+                                val urlToSave = selectedPhoto?.url
+                                if (urlToSave != null) {
+                                    Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
+                                    val success = downloadAndSaveImage(context, urlToSave)
+                                    if (success) {
+                                        showDownloadNotification(context)
+                                    } else {
+                                        Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                selectedPhoto = null
+                            }
+                        }) {
+                            Text("Download")
+                        }
+                        
+                        TextButton(onClick = { selectedPhoto = null }) {
+                            Text("Close")
+                        }
+                    }
+                },
+                text = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Image(
+                            painter = rememberAsyncImagePainter(selectedPhoto?.url),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 400.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = selectedPhoto?.title ?: "", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            )
+        }
+    }
+}
+
+private suspend fun downloadAndSaveImage(context: Context, urlString: String): Boolean = withContext(Dispatchers.IO) {
+    try {
+        val url = URL(urlString)
+        val connection = url.openConnection()
+        connection.connect()
+        val inputStream = connection.getInputStream()
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+        inputStream.close()
+
+        if (bitmap == null) return@withContext false
+
+        val filename = "Darshan_${System.currentTimeMillis()}.jpg"
+        val contentResolver = context.contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Gokudiyugam")
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+        }
+
+        val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        if (imageUri != null) {
+            val outputStream = contentResolver.openOutputStream(imageUri)
+            if (outputStream != null) {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                outputStream.close()
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentValues.clear()
+                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                    contentResolver.update(imageUri, contentValues, null, null)
+                }
+                return@withContext true
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return@withContext false
+}
+
+private fun showDownloadNotification(context: Context) {
+    val channelId = "download_channel"
+    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    val channel = NotificationChannel(
+        channelId,
+        "Downloads",
+        NotificationManager.IMPORTANCE_DEFAULT
+    )
+    notificationManager.createNotificationChannel(channel)
+
+    val notification = NotificationCompat.Builder(context, channelId)
+        .setSmallIcon(android.R.drawable.stat_sys_download_done)
+        .setContentTitle("Download Complete")
+        .setContentText("Photo has been saved to your gallery.")
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .setAutoCancel(true)
+        .build()
+
+    notificationManager.notify(1, notification)
+}

@@ -1,0 +1,45 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+  bio: String
+  martialArtsDisciplines: [String]
+}
+
+type MartialArt @table {
+  name: String!
+  description: String
+  origins: String
+}
+
+type TrainingSession @table {
+  sessionDate: Date!
+  durationMinutes: Int!
+  createdAt: Timestamp!
+  description: String
+  techniquesPracticed: [String]
+  intensity: String
+  user: User
+  martialArt: MartialArt
+}
+
+type ProgressUpdate @table {
+  updateDate: Date!
+  description: String!
+  createdAt: Timestamp!
+  rankOrBeltAchieved: String
+  specificTechniqueMastered: String
+  user: User
+  martialArt: MartialArt
+}
+
+type Goal @table {
+  goalDescription: String!
+  targetDate: Date!
+  createdAt: Timestamp!
+  isCompleted: Boolean!
+  completionDate: Date
+  user: User
+  martialArt: MartialArt
+}
