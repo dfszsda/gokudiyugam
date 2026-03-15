@@ -2,6 +2,7 @@
 
 package com.example.gokudiyugam.ui.screens
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,7 +38,7 @@ fun MediaDataScreen(
     val context = LocalContext.current
     val mediaList = viewModel.mediaList
     var selectedType by remember { mutableStateOf("all") }
-    val types = listOf("all", "photo", "video", "audio", "doc", "mandir_darshan", "sabha_timetable")
+    val types = listOf("all", "photo", "video", "audio", "doc", "youtube", "mandir_darshan", "puja_darshan", "guruhari_darshan", "sabha_timetable")
 
     var showUploadDialog by remember { mutableStateOf(false) }
     var selectedItemForRepost by remember { mutableStateOf<MediaItem?>(null) }
@@ -76,7 +78,7 @@ fun MediaDataScreen(
                     Tab(
                         selected = selectedType == type,
                         onClick = { selectedType = type },
-                        text = { Text(type.replaceFirstChar { it.uppercase() }) }
+                        text = { Text(type.replaceFirstChar { it.uppercase() }.replace("_", " ")) }
                     )
                 }
             }
@@ -104,6 +106,10 @@ fun MediaDataScreen(
                 onDismiss = { showUploadDialog = false },
                 onUpload = { uri, title, type ->
                     viewModel.uploadFile(uri, title, type)
+                    showUploadDialog = false
+                },
+                onYouTubePost = { title, url ->
+                    viewModel.postYouTubeLink(title, url)
                     showUploadDialog = false
                 }
             )
@@ -154,8 +160,14 @@ fun MediaCard(
     onRepostClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable {
+            if (item.type == "youtube" || item.url.contains("youtube.com") || item.url.contains("youtu.be")) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(item.url))
+                context.startActivity(intent)
+            }
+        },
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
@@ -164,6 +176,27 @@ fun MediaCard(
                     model = item.url,
                     contentDescription = item.title,
                     modifier = Modifier.fillMaxWidth().height(200.dp)
+                )
+            } else if (item.type == "youtube" || item.url.contains("youtube.com") || item.url.contains("youtu.be")) {
+                // Try to get YouTube thumbnail
+                val videoId = try {
+                    if (item.url.contains("v=")) item.url.substringAfter("v=").substringBefore("&")
+                    else item.url.substringAfterLast("/")
+                } catch (e: Exception) { "" }
+                
+                if (videoId.isNotEmpty()) {
+                    val thumbUrl = "https://img.youtube.com/vi/$videoId/0.jpg"
+                    AsyncImage(
+                        model = thumbUrl,
+                        contentDescription = item.title,
+                        modifier = Modifier.fillMaxWidth().height(200.dp)
+                    )
+                }
+                Text(
+                    text = "Video Content",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
             
@@ -174,7 +207,7 @@ fun MediaCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = item.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
-                    Text(text = "Type: ${item.type}", style = MaterialTheme.typography.bodySmall)
+                    Text(text = "Type: ${item.type.replace("_", " ")}", style = MaterialTheme.typography.bodySmall)
                 }
                 
                 Row {
@@ -194,7 +227,7 @@ fun MediaCard(
 
 @Composable
 fun RepostDialog(onDismiss: () -> Unit, onRepost: (String) -> Unit) {
-    val categories = listOf("photo", "video", "audio", "doc", "mandir_darshan", "sabha_timetable")
+    val categories = listOf("photo", "video", "audio", "doc", "youtube", "mandir_darshan", "puja_darshan", "guruhari_darshan", "sabha_timetable")
     var selectedCategory by remember { mutableStateOf(categories[0]) }
 
     AlertDialog(
@@ -209,11 +242,11 @@ fun RepostDialog(onDismiss: () -> Unit, onRepost: (String) -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { selectedCategory = category }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = selectedCategory == category, onClick = { selectedCategory = category })
-                        Text(text = category.replaceFirstChar { it.uppercase() }, modifier = Modifier.padding(start = 8.dp))
+                        Text(text = category.replaceFirstChar { it.uppercase() }.replace("_", " "), modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
@@ -230,10 +263,15 @@ fun RepostDialog(onDismiss: () -> Unit, onRepost: (String) -> Unit) {
 }
 
 @Composable
-fun UploadDialog(onDismiss: () -> Unit, onUpload: (Uri, String, String) -> Unit) {
+fun UploadDialog(
+    onDismiss: () -> Unit, 
+    onUpload: (Uri, String, String) -> Unit,
+    onYouTubePost: (String, String) -> Unit
+) {
     var title by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("photo") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
+    var youtubeUrl by remember { mutableStateOf("") }
     
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         selectedUri = uri
@@ -241,38 +279,63 @@ fun UploadDialog(onDismiss: () -> Unit, onUpload: (Uri, String, String) -> Unit)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Upload File") },
+        title = { Text("Add Media") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") })
+                OutlinedTextField(
+                    value = title, 
+                    onValueChange = { title = it }, 
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 
                 Text("Select Type:")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("photo", "video", "audio", "doc").forEach { type ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val types = listOf("photo", "video", "audio", "doc", "youtube")
+                    types.forEach { type ->
                         FilterChip(
                             selected = selectedType == type,
                             onClick = { selectedType = type },
-                            label = { Text(type) }
+                            label = { Text(type, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
                 
-                Button(onClick = { launcher.launch(when(selectedType) {
-                    "photo" -> "image/*"
-                    "video" -> "video/*"
-                    "audio" -> "audio/*"
-                    else -> "*/*"
-                }) }) {
-                    Text(if (selectedUri == null) "Choose File" else "File Selected")
+                if (selectedType == "youtube") {
+                    OutlinedTextField(
+                        value = youtubeUrl, 
+                        onValueChange = { youtubeUrl = it }, 
+                        label = { Text("YouTube Link") },
+                        placeholder = { Text("https://www.youtube.com/watch?v=...") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Button(
+                        onClick = { launcher.launch(when(selectedType) {
+                            "photo" -> "image/*"
+                            "video" -> "video/*"
+                            "audio" -> "audio/*"
+                            else -> "*/*"
+                        }) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (selectedUri == null) "Choose File" else "File Selected")
+                    }
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = { selectedUri?.let { onUpload(it, title, selectedType) } },
-                enabled = title.isNotEmpty() && selectedUri != null
+                onClick = { 
+                    if (selectedType == "youtube") {
+                        onYouTubePost(title, youtubeUrl)
+                    } else {
+                        selectedUri?.let { onUpload(it, title, selectedType) }
+                    }
+                },
+                enabled = title.isNotEmpty() && (selectedUri != null || (selectedType == "youtube" && youtubeUrl.isNotEmpty()))
             ) {
-                Text("Upload")
+                Text(if (selectedType == "youtube") "Post Link" else "Upload")
             }
         },
         dismissButton = {

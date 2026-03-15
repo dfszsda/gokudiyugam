@@ -29,6 +29,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Gokudiyugam"
+        android:usesCleartextTraffic="true"
         tools:targetApi="34">
 
         <activity
@@ -36,6 +37,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:theme="@style/Theme.Gokudiyugam">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

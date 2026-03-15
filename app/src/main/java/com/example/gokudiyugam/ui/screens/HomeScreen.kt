@@ -40,7 +40,6 @@ fun HomeScreen(
     onNavigateToFunctions: () -> Unit,
     onNavigateToSatsangNews: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToAdminPanel: () -> Unit = {},
     onNavigateToMediaLibrary: () -> Unit,
     onProfileClick: () -> Unit,
     onLogout: () -> Unit,
@@ -194,18 +193,6 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
-                // Admin Panel accessible to HOST and SUB_HOST
-                if (currentUserRole == UserRole.HOST || currentUserRole == UserRole.SUB_HOST) {
-                    item {
-                        FeatureCard(
-                            title = "Admin Panel",
-                            icon = Icons.Default.AdminPanelSettings,
-                            description = "Manage users & media",
-                            onClick = onNavigateToAdminPanel
-                        )
-                    }
-                }
-
                 item { 
                     FeatureCard(
                         title = stringResource(R.string.daily_darshan),

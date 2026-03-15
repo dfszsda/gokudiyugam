@@ -1,13 +1,15 @@
 package com.example.gokudiyugam.ui.screens
 
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,11 +20,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
 import com.example.gokudiyugam.model.UserRole
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 
 @Composable
@@ -31,41 +35,128 @@ fun LoginScreen(
     onLoginSuccess: (String, UserRole) -> Unit,
     onRequireVerification: (String, String) -> Unit,
     onSignUpClick: () -> Unit,
-    onGoogleSignInClick: () -> Unit,
     onEmailSignInClick: (String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
-    var isChecking by remember { mutableStateOf(false) }
+    var isCheckingEmail by remember { mutableStateOf(false) }
+    var isEmailRegistered by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var isGmailUser by remember { mutableStateOf(false) }
+
+    // Forgot Password States
+    var showForgotDialog by remember { mutableStateOf(false) }
+    var isRequestingReset by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val db = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
+    
     val adminEmail = "bssbadalpur@gmail.com"
     val adminPassword = "Admin@123"
 
+    // ઓટોમેટિક ઈમેલ ચેક લોજિક
     LaunchedEffect(email) {
-        if (email.isNotEmpty()) {
-            if (email == adminEmail || email == "admin") {
+        if (email.length > 5 && (email.contains("@") || email == "admin")) {
+            isCheckingEmail = true
+            delay(1000) 
+
+            if (email == "admin" || email == adminEmail) {
+                isEmailRegistered = true
                 errorMessage = ""
-                isChecking = false
-                return@LaunchedEffect
-            }
-
-            isChecking = true
-            delay(500)
-
-            val username = preferenceManager.getUsernameByIdentifier(email)
-            if (username == null && !email.contains("@")) {
-                 errorMessage = context.getString(R.string.error_not_found, email)
+                isCheckingEmail = false
             } else {
-                errorMessage = ""
+                db.collection("users")
+                    .whereEqualTo("email", email)
+                    .get()
+                    .addOnSuccessListener { result ->
+                        if (!result.isEmpty) {
+                            isEmailRegistered = true
+                            errorMessage = ""
+                            isGmailUser = email.endsWith("@gmail.com")
+                        } else {
+                            isEmailRegistered = false
+                            if (email.contains("@")) {
+                                errorMessage = "Email not found. Please Sign Up."
+                            }
+                        }
+                        isCheckingEmail = false
+                    }
+                    .addOnFailureListener {
+                        isCheckingEmail = false
+                    }
             }
-            isChecking = false
         } else {
+            isEmailRegistered = false
             errorMessage = ""
-            isChecking = false
         }
+    }
+
+    // Forgot Password Request Dialog
+    if (showForgotDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgotDialog = false },
+            title = { Text("Forgot Password?") },
+            text = {
+                Text("An admin request will be sent for your email: $email\n\nAdmin will send you a reset link once approved.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isRequestingReset = true
+                        db.collection("users").whereEqualTo("email", email).get()
+                            .addOnSuccessListener { result ->
+                                if (!result.isEmpty) {
+                                    val userDoc = result.documents[0]
+                                    val uid = userDoc.id
+                                    val name = userDoc.getString("name") ?: "Unknown User"
+
+                                    val requestData = mapOf(
+                                        "uid" to uid,
+                                        "email" to email,
+                                        "name" to name,
+                                        "status" to "pending",
+                                        "timestamp" to System.currentTimeMillis()
+                                    )
+
+                                    db.collection("password_requests").document(uid).set(requestData)
+                                        .addOnSuccessListener {
+                                            isRequestingReset = false
+                                            showForgotDialog = false
+                                            Toast.makeText(context, "Request sent to Admin!", Toast.LENGTH_LONG).show()
+                                        }
+                                        .addOnFailureListener {
+                                            isRequestingReset = false
+                                            Toast.makeText(context, "Request failed. Try again.", Toast.LENGTH_SHORT).show()
+                                        }
+                                } else {
+                                    isRequestingReset = false
+                                    Toast.makeText(context, "Email not found!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .addOnFailureListener {
+                                isRequestingReset = false
+                                Toast.makeText(context, "Error checking email", Toast.LENGTH_SHORT).show()
+                            }
+                    },
+                    enabled = !isRequestingReset
+                ) {
+                    if (isRequestingReset) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Send Request")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgotDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 
     Surface(
@@ -76,14 +167,10 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.4f)
+                    .fillMaxHeight(0.35f)
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                Color.Transparent
-                            )
+                            colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), Color.Transparent)
                         )
                     )
             )
@@ -91,188 +178,131 @@ fun LoginScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 30.dp),
+                    .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
-                    modifier = Modifier.size(100.dp),
+                    modifier = Modifier.size(90.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 8.dp
+                    shadowElevation = 6.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Text(
-                    text = stringResource(R.string.welcome_back),
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Gokudiyugam", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
                 Spacer(modifier = Modifier.height(40.dp))
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            label = { Text(stringResource(R.string.email)) },
+                            label = { Text("Email Address") },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                            trailingIcon = {
+                                if (isCheckingEmail) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                } else if (isEmailRegistered) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50))
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
-                            isError = errorMessage.isNotEmpty() && !isChecking
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text(stringResource(R.string.password)) },
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                            visualTransformation = PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true
+                            isError = errorMessage.isNotEmpty() && !isCheckingEmail
                         )
 
                         if (errorMessage.isNotEmpty()) {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(top = 12.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Text(text = errorMessage, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall)
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Button(
-                            onClick = {
-                                if (email.isEmpty() || password.isEmpty()) {
-                                    errorMessage = context.getString(R.string.error_credentials)
-                                    return@Button
-                                }
-
-                                // Check for Admin Bypass
-                                if ((email == "admin" && password == "admin") || 
-                                    (email == adminEmail && password == adminPassword)) {
-                                    onLoginSuccess("Admin", UserRole.HOST)
-                                } else {
-                                    isLoading = true
-                                    errorMessage = ""
-                                    onEmailSignInClick(email, password, { isLoading = it }, { errorMessage = it })
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            enabled = !isChecking && !isLoading
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp
+                        AnimatedVisibility(visible = isEmailRegistered, enter = fadeIn() + expandVertically()) {
+                            Column {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                OutlinedTextField(
+                                    value = password,
+                                    onValueChange = { password = it },
+                                    label = { Text("Password") },
+                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                                    visualTransformation = PasswordVisualTransformation(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    singleLine = true
                                 )
-                            } else {
-                                Text(stringResource(R.string.sign_in), style = MaterialTheme.typography.titleMedium)
+                                
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                                    TextButton(onClick = { showForgotDialog = true }) {
+                                        Text("Forgot Password?", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Button(
+                                    onClick = {
+                                        if (password.isNotEmpty()) {
+                                            if ((email == "admin" && password == "admin") || (email == adminEmail && password == adminPassword)) {
+                                                onLoginSuccess("Admin", UserRole.HOST)
+                                            } else {
+                                                isLoading = true
+                                                onEmailSignInClick(email, password, { isLoading = it }, { errorMessage = it })
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    enabled = !isLoading
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Text("Sign In", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        if (isGmailUser && !isEmailRegistered && !isCheckingEmail) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Or connect directly with", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { /* TODO: Trigger Google Login */ },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.AccountBox, contentDescription = null, tint = Color.Red)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Continue with Google", color = Color.Black)
+                                }
                             }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Don't have an account?",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                    )
-                    TextButton(onClick = onSignUpClick) {
-                        Text(
-                            text = stringResource(R.string.sign_up),
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onGoogleSignInClick,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(MaterialTheme.colorScheme.surface, CircleShape)
-                            .padding(4.dp)
-                    ) {
-                        Text(
-                            text = "G",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(24.dp))
-
-                    IconButton(
-                        onClick = { onLoginSuccess("Guest", UserRole.GUEST) },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(MaterialTheme.colorScheme.surface, CircleShape)
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = stringResource(R.string.guest_user),
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("New here?", color = Color.Gray)
+                    TextButton(onClick = onSignUpClick) { Text("Sign Up", fontWeight = FontWeight.Bold) }
                 }
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    LoginScreen(
-        preferenceManager = PreferenceManager(LocalContext.current),
-        onLoginSuccess = { _, _ -> },
-        onRequireVerification = { _, _ -> },
-        onSignUpClick = {},
-        onGoogleSignInClick = {},
-        onEmailSignInClick = { _, _, _, _ -> }
-    )
 }

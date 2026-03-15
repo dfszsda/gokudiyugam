@@ -5,7 +5,6 @@ package com.example.gokudiyugam
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,22 +18,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.gokudiyugam.model.User
 import com.example.gokudiyugam.model.UserRole
 import com.example.gokudiyugam.ui.screens.*
 import com.example.gokudiyugam.ui.theme.GokudiyugamTheme
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.SetOptions
@@ -45,7 +39,6 @@ import java.net.URLEncoder
 import java.util.Locale
 
 class MainActivity : androidx.fragment.app.FragmentActivity() {
-    private val WEB_CLIENT_ID = "728177722635-u2gatdgb305ga6gbt6viabml4d8hv3gc.apps.googleusercontent.com"
     private val ADMIN_EMAIL = "bssbadalpur@gmail.com"
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
@@ -68,7 +61,6 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
         
-        // Ensure Firestore works well with offline/cache
         val settings = FirebaseFirestoreSettings.Builder()
             .setPersistenceEnabled(true)
             .build()
@@ -100,26 +92,37 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                         color = MaterialTheme.colorScheme.background
                     ) {
                         val navController = rememberNavController()
-                        val currentUsername = preferenceManager.getCurrentUsername() ?: ""
+                        val currentUsernamePref = preferenceManager.getCurrentUsername() ?: ""
+                        
                         var currentUserRole by remember { 
                             mutableStateOf<UserRole?>(
-                                if (currentUsername.isNotEmpty()) preferenceManager.getUserRoleForAccount(currentUsername) else null
+                                if (currentUsernamePref.isNotEmpty()) preferenceManager.getUserRoleForAccount(currentUsernamePref) else null
                             ) 
                         }
 
-                        // Updated: Removed automatic profile saving to database.
-                        // Roles are now handled locally or via hardcoded Admin check.
                         LaunchedEffect(auth.currentUser) {
                             val user = auth.currentUser
                             if (user != null) {
-                                val role = if (user.email == ADMIN_EMAIL) UserRole.HOST else UserRole.NORMAL
+                                val email = user.email ?: ""
+                                val role = if (email == ADMIN_EMAIL) UserRole.HOST else UserRole.NORMAL
                                 currentUserRole = role
-                                val name = user.displayName ?: user.email?.substringBefore("@") ?: "User"
+                                
+                                val name = user.displayName ?: email.substringBefore("@")
+                                preferenceManager.saveCurrentUsername(name)
                                 preferenceManager.saveUserRoleForAccount(name, role)
+                                
+                                val userMap = mapOf(
+                                    "uid" to user.uid,
+                                    "name" to name,
+                                    "email" to email,
+                                    "role" to role.name,
+                                    "lastActive" to System.currentTimeMillis()
+                                )
+                                db.collection("users").document(user.uid).set(userMap, SetOptions.merge())
                             }
                         }
 
-                        val startDestination = if (auth.currentUser != null && currentUsername.isNotEmpty()) "home" else "login"
+                        val startDestination = if (auth.currentUser != null) "home" else "login"
 
                         NavHost(
                             navController = navController,
@@ -135,18 +138,6 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                                     },
                                     onRequireVerification = { _, _ -> },
                                     onSignUpClick = { navController.navigate("signup") },
-                                    onGoogleSignInClick = {
-                                        scope.launch {
-                                            handleGoogleSignIn(context, credentialManager, preferenceManager, { u, r ->
-                                                currentUserRole = r
-                                                preferenceManager.saveCurrentUsername(u)
-                                                navController.navigate("home") { popUpTo("login") { inclusive = true } }
-                                            }, { err -> 
-                                                Log.e("MainActivity", "Google Error: $err")
-                                                Toast.makeText(context, "Google Login Failed.", Toast.LENGTH_LONG).show()
-                                            })
-                                        }
-                                    },
                                     onEmailSignInClick = { email, password, onLoading, onError ->
                                         handleEmailSignIn(email, password, preferenceManager, { u, r ->
                                             onLoading(false)
@@ -171,15 +162,6 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                                         navController.navigate("home") { popUpTo("signup") { inclusive = true } }
                                     },
                                     onLoginClick = { navController.navigate("login") },
-                                    onGoogleSignInClick = {
-                                        scope.launch {
-                                            handleGoogleSignIn(context, credentialManager, preferenceManager, { u, r ->
-                                                currentUserRole = r
-                                                preferenceManager.saveCurrentUsername(u)
-                                                navController.navigate("home") { popUpTo("login") { inclusive = true } }
-                                            }, { err -> Toast.makeText(context, err, Toast.LENGTH_SHORT).show() })
-                                        }
-                                    },
                                     onEmailSignUpClick = { username, email, password, onLoading, onError ->
                                         handleEmailSignUp(username, email, password, preferenceManager, { u, r ->
                                             onLoading(false)
@@ -200,20 +182,33 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                                     currentUserRole = currentUserRole,
                                     onNavigateToDailyDarshan = { navController.navigate("daily_darshan") },
                                     onNavigateToKirtan = { navController.navigate("kirtan") },
-                                    onNavigateToSabhaTimeTable = { navController.navigate("bridge_to_darshan") }, // Just a temporary check
-                                    onNavigateToFunctions = { navController.navigate("functions") },
+                                    onNavigateToSabhaTimeTable = { navController.navigate("bridge_to_darshan") }, 
+                                    onNavigateToFunctions = { navController.navigate("coming_soon/Functions") },
                                     onNavigateToSatsangNews = { navController.navigate("satsang_news") },
                                     onNavigateToSettings = { navController.navigate("settings") },
                                     onNavigateToAdminPanel = { navController.navigate("admin_panel") },
                                     onNavigateToMediaLibrary = { navController.navigate("media_library") },
-                                    onNavigateToGoogleDrive = { navController.navigate("google_drive") },
-                                    onProfileClick = { },
+                                    onProfileClick = { navController.navigate("profile") },
                                     onLogout = {
                                         currentUserRole = null
                                         preferenceManager.saveCurrentUsername("")
                                         auth.signOut()
                                         scope.launch { credentialManager.clearCredentialState(ClearCredentialStateRequest()) }
                                         navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                                    },
+                                    onNavigateToGoogleDrive = { navController.navigate("google_drive") }
+                                )
+                            }
+
+                            composable("profile") {
+                                ProfileScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onNavigateToEditProfile = { navController.navigate("settings") },
+                                    onNavigateToChangePassword = { 
+                                        // Since we don't have a separate change password screen yet, 
+                                        // we can either redirect to settings or show a message.
+                                        // For now, let's assume settings has it or we will add it.
+                                        navController.navigate("settings")
                                     }
                                 )
                             }
@@ -229,9 +224,9 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                             composable("daily_darshan") {
                                 DailyDarshanScreen(
                                     onBack = { navController.popBackStack() },
-                                    onNavigateToPujaDarshan = { navController.navigate("puja_darshan") },
+                                    onNavigateToPujaDarshan = { navController.navigate("coming_soon/Puja Darshan") },
                                     onNavigateToMandirDarshan = { navController.navigate("mandir_darshan") },
-                                    onNavigateToGuruhariDarshan = { navController.navigate("guruhari_darshan") },
+                                    onNavigateToGuruhariDarshan = { navController.navigate("coming_soon/Guruhari Darshan") },
                                     onNavigateToFestivals = { navController.navigate("festivals") }
                                 )
                             }
@@ -290,10 +285,20 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                             }) }
                             composable("admin_panel") { 
                                 AdminPanelScreen(
+                                    currentUserRole = currentUserRole,
                                     preferenceManager = preferenceManager, 
                                     onNavigateToMediaLibrary = { navController.navigate("media_library") }, 
                                     onBack = { navController.popBackStack() }
                                 ) 
+                            }
+                            
+                            composable("bridge_to_darshan") {
+                                ComingSoonScreen(title = "Sabhasar", onBack = { navController.popBackStack() })
+                            }
+
+                            composable("coming_soon/{title}") { backStackEntry ->
+                                val title = backStackEntry.arguments?.getString("title") ?: "Coming Soon"
+                                ComingSoonScreen(title = title, onBack = { navController.popBackStack() })
                             }
                         }
                     }
@@ -302,22 +307,13 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-    }
-
-    override fun onResume() {
-        super.onResume()
-    }
-
     private fun handleEmailSignIn(email: String, password: String, pm: PreferenceManager, onSuccess: (String, UserRole) -> Unit, onError: (String) -> Unit) {
         auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val user = auth.currentUser
                 if (user != null) {
-                    // Removed Firestore profile fetching. Role determined by admin email check.
                     val role = if (email == ADMIN_EMAIL) UserRole.HOST else UserRole.NORMAL
-                    val name = email.substringBefore("@")
+                    val name = user.displayName ?: email.substringBefore("@")
                     pm.saveUserCredentials(name, password, role, email)
                     onSuccess(name, role)
                 } else {
@@ -332,7 +328,6 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
             if (task.isSuccessful) {
                 val user = auth.currentUser
                 if (user != null) {
-                    // Removed Firestore document creation.
                     val role = if (email == ADMIN_EMAIL) UserRole.HOST else UserRole.NORMAL
                     pm.saveUserCredentials(username, pass, role, email)
                     onSuccess(username, role)
@@ -340,39 +335,6 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                     onError("User creation failed")
                 }
             } else onError(task.exception?.message ?: "Signup failed")
-        }
-    }
-
-    private suspend fun handleGoogleSignIn(context: Context, cm: CredentialManager, pm: PreferenceManager, onSuccess: (String, UserRole) -> Unit, onError: (String) -> Unit) {
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(WEB_CLIENT_ID)
-            .setAutoSelectEnabled(true)
-            .build()
-        val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
-        try {
-            val result = cm.getCredential(context, request)
-            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
-            val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
-            auth.signInWithCredential(firebaseCredential).addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val user = auth.currentUser
-                    if (user != null) {
-                        // Removed Firestore profile fetching/saving.
-                        val role = if (user.email == ADMIN_EMAIL) UserRole.HOST else UserRole.NORMAL
-                        val name = user.displayName ?: user.email?.substringBefore("@") ?: "User"
-                        pm.saveUserCredentials(name, "", role, user.email ?: "")
-                        onSuccess(name, role)
-                    } else {
-                        onError("User not found after Google sign in")
-                    }
-                } else {
-                    onError(task.exception?.message ?: "Google sign in failed")
-                }
-            }
-        } catch (e: Exception) { 
-            Log.e("MainActivity", "Google Error: ${e.message}")
-            onError(e.message ?: "Google sign in failed") 
         }
     }
 
@@ -385,8 +347,6 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
     }
 }
 
-// --- PREVIEWS ---
-
 @Preview(showBackground = true, name = "Login Screen")
 @Composable
 fun PreviewLogin() {
@@ -397,29 +357,7 @@ fun PreviewLogin() {
             onLoginSuccess = { _, _ -> },
             onRequireVerification = { _, _ -> },
             onSignUpClick = {},
-            onGoogleSignInClick = {},
             onEmailSignInClick = { _, _, _, _ -> }
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Home Screen")
-@Composable
-fun PreviewHome() {
-    GokudiyugamTheme {
-        HomeScreen(
-            currentUserRole = UserRole.HOST,
-            onNavigateToDailyDarshan = {},
-            onNavigateToKirtan = {},
-            onNavigateToSabhaTimeTable = {},
-            onNavigateToFunctions = {},
-            onNavigateToSatsangNews = {},
-            onNavigateToSettings = {},
-            onNavigateToAdminPanel = {},
-            onNavigateToMediaLibrary = {},
-            onProfileClick = {},
-            onLogout = {},
-            onNavigateToGoogleDrive = {}
         )
     }
 }

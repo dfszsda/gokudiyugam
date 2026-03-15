@@ -37,7 +37,11 @@ class KirtanViewModel : ViewModel() {
     
     private var sharedKirtansListener: ListenerRegistration? = null
 
+    fun isControllerInitialized(): Boolean = mediaController != null
+
     fun initController(context: Context) {
+        if (isControllerInitialized()) return
+        
         val sessionToken = SessionToken(context, ComponentName(context, KirtanAudioService::class.java))
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture?.addListener({
@@ -45,10 +49,6 @@ class KirtanViewModel : ViewModel() {
             mediaController?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(playing: Boolean) {
                     isPlaying = playing
-                }
-
-                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                    // Update current kirtan based on media item if needed
                 }
             })
             startPositionUpdater()
@@ -76,20 +76,12 @@ class KirtanViewModel : ViewModel() {
         sharedKirtansListener = db.collection("mediadata")
             .whereEqualTo("type", "audio")
             .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    Log.e("KirtanViewModel", "Shared kirtans listen failed", e)
-                    return@addSnapshotListener
-                }
+                if (e != null) return@addSnapshotListener
                 
                 if (snapshot != null) {
                     val items = snapshot.toObjects(com.example.gokudiyugam.model.MediaItem::class.java)
                     val kirtans = items.map { item ->
-                        Kirtan(
-                            id = item.id,
-                            title = item.title,
-                            category = "Shared Kirtans",
-                            fileUri = item.url
-                        )
+                        Kirtan(id = item.id, title = item.title, category = "Shared Kirtans", fileUri = item.url)
                     }
                     sharedKirtans.clear()
                     sharedKirtans.addAll(kirtans)
@@ -101,8 +93,6 @@ class KirtanViewModel : ViewModel() {
         currentKirtan = kirtan
         mediaController?.let { controller ->
             controller.clearMediaItems()
-            
-            // If a playlist is provided, add all items and seek to the selected one
             if (playlist.isNotEmpty()) {
                 val mediaItems = playlist.map { item ->
                     MediaItem.Builder()
@@ -113,9 +103,7 @@ class KirtanViewModel : ViewModel() {
                 }
                 controller.setMediaItems(mediaItems)
                 val index = playlist.indexOfFirst { it.id == kirtan.id }
-                if (index != -1) {
-                    controller.seekTo(index, 0L)
-                }
+                if (index != -1) controller.seekTo(index, 0L)
             } else {
                 val mediaItem = MediaItem.Builder()
                     .setMediaId(kirtan.id)
@@ -124,50 +112,31 @@ class KirtanViewModel : ViewModel() {
                     .build()
                 controller.setMediaItem(mediaItem)
             }
-            
             controller.prepare()
             controller.play()
         }
     }
 
     fun togglePlayPause() {
-        mediaController?.let {
-            if (it.isPlaying) it.pause() else it.play()
-        }
+        mediaController?.let { if (it.isPlaying) it.pause() else it.play() }
     }
 
     fun skipForward() {
-        mediaController?.let {
-            val newPosition = it.currentPosition + 10000 // 10 seconds
-            it.seekTo(newPosition.coerceAtMost(it.duration))
-        }
+        mediaController?.let { it.seekTo((it.currentPosition + 10000).coerceAtMost(it.duration)) }
     }
 
     fun skipBackward() {
-        mediaController?.let {
-            val newPosition = it.currentPosition - 5000 // 5 seconds
-            it.seekTo(newPosition.coerceAtLeast(0L))
-        }
+        mediaController?.let { it.seekTo((it.currentPosition - 5000).coerceAtLeast(0L)) }
     }
 
-    fun playNext() {
-        mediaController?.seekToNextMediaItem()
-    }
+    fun playNext() = mediaController?.seekToNextMediaItem()
+    fun playPrevious() = mediaController?.seekToPreviousMediaItem()
 
-    fun playPrevious() {
-        mediaController?.seekToPreviousMediaItem()
-    }
-
-    fun isFavorite(kirtan: Kirtan): Boolean {
-        return favoriteKirtans.any { it.id == kirtan.id }
-    }
+    fun isFavorite(kirtan: Kirtan): Boolean = favoriteKirtans.any { it.id == kirtan.id }
 
     fun toggleFavorite(context: Context, kirtan: Kirtan) {
-        if (isFavorite(kirtan)) {
-            favoriteKirtans.removeAll { it.id == kirtan.id }
-        } else {
-            favoriteKirtans.add(kirtan)
-        }
+        if (isFavorite(kirtan)) favoriteKirtans.removeAll { it.id == kirtan.id }
+        else favoriteKirtans.add(kirtan)
         KirtanRepository.saveFavoriteKirtans(context, favoriteKirtans.toList())
     }
 
@@ -178,9 +147,7 @@ class KirtanViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        controllerFuture?.let {
-            MediaController.releaseFuture(it)
-        }
+        controllerFuture?.let { MediaController.releaseFuture(it) }
         sharedKirtansListener?.remove()
     }
 }

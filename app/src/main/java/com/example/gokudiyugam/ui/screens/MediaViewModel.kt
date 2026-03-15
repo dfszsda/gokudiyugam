@@ -79,6 +79,27 @@ class MediaViewModel : ViewModel() {
         }
     }
 
+    // New: Post YouTube Link
+    fun postYouTubeLink(title: String, url: String) {
+        val userId = auth.currentUser?.uid ?: "anonymous"
+        viewModelScope.launch {
+            try {
+                val mediaItem = MediaItem(
+                    id = UUID.randomUUID().toString(),
+                    title = title,
+                    url = url,
+                    type = "youtube",
+                    uploadedBy = userId,
+                    timestamp = Timestamp.now()
+                )
+                db.collection("mediadata").document(mediaItem.id).set(mediaItem).await()
+                rtdb.child(mediaItem.id).setValue(mediaItem).await()
+            } catch (e: Exception) {
+                Log.e("MediaViewModel", "YouTube Link Post Failed: ${e.message}")
+            }
+        }
+    }
+
     // New: Re-post an existing item from Media Library to a specific screen
     fun repostItem(item: MediaItem, newCategory: String) {
         viewModelScope.launch {

@@ -1,45 +1,56 @@
 type User @table {
-  displayName: String!
+  username: String!
+  email: String!
+  passwordHash: String!
   createdAt: Timestamp!
-  email: String
-  photoUrl: String
+  displayName: String
   bio: String
-  martialArtsDisciplines: [String]
+  profilePictureUrl: String
+  lastLoginAt: Timestamp
 }
 
-type MartialArt @table {
-  name: String!
-  description: String
-  origins: String
-}
-
-type TrainingSession @table {
-  sessionDate: Date!
-  durationMinutes: Int!
-  createdAt: Timestamp!
-  description: String
-  techniquesPracticed: [String]
-  intensity: String
-  user: User
-  martialArt: MartialArt
-}
-
-type ProgressUpdate @table {
-  updateDate: Date!
+type Practice @table {
+  title: String!
   description: String!
+  durationMinutes: Int!
+  type: String!
   createdAt: Timestamp!
-  rankOrBeltAchieved: String
-  specificTechniqueMastered: String
-  user: User
-  martialArt: MartialArt
+  audioUrl: String
+  videoUrl: String
+  imageUrl: String
+  difficultyLevel: String
 }
 
-type Goal @table {
-  goalDescription: String!
-  targetDate: Date!
+type UserPractice @table(key: ["user", "practice"]) {
+  user: User!
+  practice: Practice!
+  completedAt: Timestamp!
+  durationPracticedMinutes: Int!
+  rating: Int
+  userNotes: String
+}
+
+type Reflection @table {
+  user: User!
+  title: String!
+  content: String!
   createdAt: Timestamp!
-  isCompleted: Boolean!
-  completionDate: Date
-  user: User
-  martialArt: MartialArt
+  associatedPractice: Practice
+  isPrivate: Boolean
+}
+
+type Group @table {
+  creator: User!
+  name: String!
+  type: String!
+  createdAt: Timestamp!
+  description: String
+  imageUrl: String
+}
+
+type GroupMember @table(key: ["user", "group"]) {
+  user: User!
+  group: Group!
+  joinedAt: Timestamp!
+  role: String!
 }

@@ -30,21 +30,30 @@ fun KirtanPlayerScreen(
     kirtanViewModel: KirtanViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val kirtans = when (category) {
-        stringResource(R.string.kirtan_category_arati) -> KirtanRepository.getAratiKirtans(context)
-        stringResource(R.string.kirtan_category_dhun) -> KirtanRepository.getDhunKirtans(context)
-        stringResource(R.string.kirtan_category_prathana) -> KirtanRepository.getPrathanaKirtans(context)
-        stringResource(R.string.kirtan_category_others) -> KirtanRepository.getOthersKirtans(context)
-        stringResource(R.string.kirtan_category_favorite) -> KirtanRepository.getFavoriteKirtans(context)
-        "Shared Kirtans" -> kirtanViewModel.sharedKirtans
-        else -> emptyList()
+    
+    // ViewModel પહેલેથી જ રોટેશન દરમિયાન ડેટા જાળવી રાખે છે.
+    // આપણે માત્ર એ જોવાનું છે કે LaunchedEffect દર વખતે ફરી રન ન થાય.
+    
+    val kirtans = remember(category) {
+        when (category) {
+            context.getString(R.string.kirtan_category_arati) -> KirtanRepository.getAratiKirtans(context)
+            context.getString(R.string.kirtan_category_dhun) -> KirtanRepository.getDhunKirtans(context)
+            context.getString(R.string.kirtan_category_prathana) -> KirtanRepository.getPrathanaKirtans(context)
+            context.getString(R.string.kirtan_category_others) -> KirtanRepository.getOthersKirtans(context)
+            context.getString(R.string.kirtan_category_favorite) -> KirtanRepository.getFavoriteKirtans(context)
+            "Shared Kirtans" -> kirtanViewModel.sharedKirtans
+            else -> emptyList()
+        }
     }
 
-    LaunchedEffect(category) {
-        kirtanViewModel.initController(context)
-        context.startService(Intent(context, KirtanAudioService::class.java))
+    LaunchedEffect(Unit) {
+        // આ માત્ર પહેલીવાર રન થશે, રોટેશન વખતે નહીં
+        if (!kirtanViewModel.isControllerInitialized()) {
+            kirtanViewModel.initController(context)
+            context.startService(Intent(context, KirtanAudioService::class.java))
+        }
         
-        if (category == "Shared Kirtans") {
+        if (category == "Shared Kirtans" && kirtanViewModel.sharedKirtans.isEmpty()) {
             kirtanViewModel.fetchSharedKirtans()
         }
     }
@@ -55,7 +64,7 @@ fun KirtanPlayerScreen(
                 title = { Text(category, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -75,7 +84,7 @@ fun KirtanPlayerScreen(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
             Text(
-                text = kirtanViewModel.currentKirtan?.title ?: stringResource(R.string.now_playing),
+                text = kirtanViewModel.currentKirtan?.title ?: "Select a Kirtan",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -84,7 +93,7 @@ fun KirtanPlayerScreen(
             // Seek bar
             Slider(
                 value = kirtanViewModel.playbackPosition.toFloat(),
-                onValueChange = { /* TODO: Implement seek */ },
+                onValueChange = { /* Implement seek */ },
                 valueRange = 0f..(kirtanViewModel.duration.toFloat().takeIf { it > 0 } ?: 1f),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -109,7 +118,7 @@ fun KirtanPlayerScreen(
                 ) {
                     Icon(
                         imageVector = if (kirtanViewModel.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (kirtanViewModel.isPlaying) stringResource(R.string.paused) else stringResource(R.string.playing),
+                        contentDescription = "Play/Pause",
                         modifier = Modifier.size(48.dp)
                     )
                 }
@@ -140,9 +149,7 @@ fun KirtanPlayerScreen(
                         tonalElevation = 2.dp
                     ) {
                         Row(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
+                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -153,9 +160,7 @@ fun KirtanPlayerScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             
-                            IconButton(
-                                onClick = { kirtanViewModel.toggleFavorite(context, kirtan) }
-                            ) {
+                            IconButton(onClick = { kirtanViewModel.toggleFavorite(context, kirtan) }) {
                                 Icon(
                                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                     contentDescription = "Favorite",

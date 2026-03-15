@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gokudiyugam Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #6200EE;
+            --secondary-color: #03DAC6;
+        }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: var(--primary-color) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .admin-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .admin-card:hover {
+            transform: translateY(-5.dp);
+        }
+        #login-container {
+            max-width: 400.dp;
+            margin-top: 100.dp;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark mb-4 hidden" id="main-nav">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-shield-lock-fill me-2"></i>Gokudiyugam Admin
+            </a>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Login Screen -->
+    <div class="container" id="login-container">
+        <div class="card admin-card p-4">
+            <h3 class="text-center mb-4">Admin Login</h3>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" id="admin-email" class="form-control" placeholder="admin@example.com">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" id="admin-password" class="form-control">
+            </div>
+            <button class="btn btn-primary w-100" onclick="login()">Login</button>
+            <p id="login-error" class="text-danger mt-3 text-center small"></p>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div class="container hidden" id="dashboard-container">
+        <div class="row g-4">
+            <!-- Sidebar/Menu -->
+            <div class="col-md-3">
+                <div class="list-group admin-card">
+                    <button class="list-group-item list-group-item-action active" onclick="showSection('overview')">
+                        <i class="bi bi-speedometer2 me-2"></i>Overview
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="showSection('media')">
+                        <i class="bi bi-images me-2"></i>Media Management
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="showSection('users')">
+                        <i class="bi bi-people me-2"></i>User Requests
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="col-md-9">
+                <!-- Overview Section -->
+                <div id="overview-section" class="admin-section">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="card admin-card p-3 bg-white text-center">
+                                <h6>Total Users</h6>
+                                <h2 id="count-users">0</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card admin-card p-3 bg-white text-center">
+                                <h6>Media Items</h6>
+                                <h2 id="count-media">0</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card admin-card p-3 bg-white text-center text-danger">
+                                <h6>Pending Requests</h6>
+                                <h2 id="count-requests">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Media Section -->
+                <div id="media-section" class="admin-section hidden">
+                    <div class="card admin-card p-4">
+                        <div class="d-flex justify-content-between mb-4">
+                            <h4>Manage Media</h4>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                <i class="bi bi-plus-lg me-1"></i>Add New
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Category</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="media-table-body">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Requests Section -->
+                <div id="users-section" class="admin-section hidden">
+                    <div class="card admin-card p-4">
+                        <h4>Password Reset Requests</h4>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requests-table-body">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <script>
+        // Firebase Configuration (from your google-services.json)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEfon79kgebeUDNTjYSoCOctxH90cEWjI",
+            authDomain: "gokudiyugam.firebaseapp.com",
+            projectId: "gokudiyugam",
+            storageBucket: "gokudiyugam.firebasestorage.app",
+            messagingSenderId: "728177722635",
+            appId: "1:728177722635:web:something" // Replace with web app id from firebase console
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // UI Logic
+        function login() {
+            const email = document.getElementById('admin-email').value;
+            const pass = document.getElementById('admin-password').value;
+
+            auth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    // Check if Admin
+                    if(email === 'bssbadalpur@gmail.com') {
+                        document.getElementById('login-container').classList.add('hidden');
+                        document.getElementById('main-nav').classList.remove('hidden');
+                        document.getElementById('dashboard-container').classList.remove('hidden');
+                        loadStats();
+                    } else {
+                        auth.signOut();
+                        alert("Access Denied: Not an Admin account.");
+                    }
+                })
+                .catch((error) => {
+                    document.getElementById('login-error').innerText = error.message;
+                });
+        }
+
+        function logout() {
+            auth.signOut().then(() => {
+                location.reload();
+            });
+        }
+
+        function showSection(section) {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(section + '-section').classList.remove('hidden');
+
+            if(section === 'media') loadMedia();
+            if(section === 'users') loadRequests();
+        }
+
+        function loadStats() {
+            db.collection('users').get().then(snap => {
+                document.getElementById('count-users').innerText = snap.size;
+            });
+            db.collection('password_requests').where('status', '==', 'pending').get().then(snap => {
+                document.getElementById('count-requests').innerText = snap.size;
+            });
+        }
+
+        function loadRequests() {
+            const tbody = document.getElementById('requests-table-body');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
+
+            db.collection('password_requests').get().then(snap => {
+                tbody.innerHTML = '';
+                snap.forEach(doc => {
+                    const req = doc.data();
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${req.name}</td>
+                            <td>${req.email}</td>
+                            <td><span class="badge bg-warning">${req.status}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="handleRequest('${doc.id}')">Resolve</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+
+        // Auth Listener
+        auth.onAuthStateChanged(user => {
+            if (user && user.email === 'bssbadalpur@gmail.com') {
+                document.getElementById('login-container').classList.add('hidden');
+                document.getElementById('main-nav').classList.remove('hidden');
+                document.getElementById('dashboard-container').classList.remove('hidden');
+                loadStats();
+            }
+        });
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

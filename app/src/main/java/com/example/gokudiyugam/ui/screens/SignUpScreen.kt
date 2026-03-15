@@ -9,7 +9,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,7 +31,6 @@ fun SignUpScreen(
     preferenceManager: PreferenceManager,
     onSignUpSuccess: (String, UserRole) -> Unit,
     onLoginClick: () -> Unit,
-    onGoogleSignInClick: () -> Unit,
     onEmailSignUpClick: (String, String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
@@ -249,23 +247,6 @@ fun SignUpScreen(
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                IconButton(
-                    onClick = onGoogleSignInClick,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(MaterialTheme.colorScheme.surface, CircleShape)
-                        .padding(4.dp)
-                ) {
-                    Text(
-                        text = "G",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
                 
                 Spacer(modifier = Modifier.height(40.dp))

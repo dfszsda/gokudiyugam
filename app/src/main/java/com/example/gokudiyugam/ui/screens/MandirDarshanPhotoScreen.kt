@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +35,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
-import com.example.gokudiyugam.drive.DriveHelper
 import com.example.gokudiyugam.drive.DriveViewModel
 import com.example.gokudiyugam.model.UserRole
 import com.example.gokudiyugam.model.MediaItem
@@ -56,11 +54,9 @@ fun MandirDarshanPhotoScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
-    // Fetch data from Firestore instead of local preference
     val photos = driveViewModel.currentCategoryItems
     val isFetching = driveViewModel.isFetching
     val isUploading = driveViewModel.isUploading
-    val driveHelper = driveViewModel.driveHelper
 
     var selectedPhoto by remember { mutableStateOf<MediaItem?>(null) }
     
@@ -68,15 +64,8 @@ fun MandirDarshanPhotoScreen(
     val canEdit = currentUserRole == UserRole.HOST ||
                  (currentUserRole == UserRole.SUB_HOST && preferenceManager.hasPermission(currentUsername, "screen_mandir_darshan"))
 
-    // Fetch photos on launch
     LaunchedEffect(Unit) {
         driveViewModel.fetchCategoryItems("mandir_darshan")
-    }
-
-    val signInLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        driveViewModel.handleSignInResult(context, result)
     }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -111,19 +100,8 @@ fun MandirDarshanPhotoScreen(
         },
         floatingActionButton = {
             if (canEdit) {
-                if (driveHelper == null) {
-                    ExtendedFloatingActionButton(
-                        onClick = {
-                            val signInClient = DriveHelper.getGoogleSignInClient(context)
-                            signInLauncher.launch(signInClient.signInIntent)
-                        },
-                        icon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
-                        text = { Text("Sign in to Post") }
-                    )
-                } else {
-                    FloatingActionButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Photo")
-                    }
+                FloatingActionButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Photo")
                 }
             }
         }
@@ -176,7 +154,7 @@ fun MandirDarshanPhotoScreen(
                     ) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Uploading to Drive...", fontWeight = FontWeight.Bold)
+                        Text("Uploading...", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -190,7 +168,6 @@ fun MandirDarshanPhotoScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        // Everyone can download
                         TextButton(onClick = {
                             scope.launch {
                                 val urlToSave = selectedPhoto?.url

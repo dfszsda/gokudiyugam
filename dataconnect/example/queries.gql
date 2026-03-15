@@ -1,0 +1,47 @@
+query ListAllPractices @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it lists general practice information.") {
+  practices {
+    id
+    title
+    description
+    durationMinutes
+    type
+    difficultyLevel
+    imageUrl
+  }
+}
+
+query GetMyReflections @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users as it queries their own reflections.") {
+  reflections(where: {userId: {eq_expr: "auth.uid"}}) {
+    id
+    title
+    content
+    createdAt
+    isPrivate
+    associatedPractice {
+      id
+      title
+    }
+  }
+}
+
+mutation CreateNewGroup($name: String!, $type: String!, $description: String, $imageUrl: String) @auth(level: USER, insecureReason: "This operation creates a new group and relies on the authenticated user as the creator.") {
+  group_insert(data: {
+    creatorId_expr: "auth.uid",
+    name: $name,
+    type: $type,
+    description: $description,
+    imageUrl: $imageUrl,
+    createdAt_expr: "request.time"
+  })
+}
+
+mutation RecordUserPracticeCompletion($practiceId: UUID!, $durationPracticedMinutes: Int!, $rating: Int, $userNotes: String) @auth(level: USER, insecureReason: "This operation records a user's practice completion and is tied to the authenticated user.") {
+  userPractice_insert(data: {
+    userId_expr: "auth.uid",
+    practiceId: $practiceId,
+    completedAt_expr: "request.time",
+    durationPracticedMinutes: $durationPracticedMinutes,
+    rating: $rating,
+    userNotes: $userNotes
+  })
+}

@@ -1,0 +1,117 @@
+mutation CreateDemoData @transaction @auth(level: PUBLIC, insecureReason: "This is seed data and can be populated by anyone.") {
+  user_insertMany(data: [
+    {
+      id: "b4c9e7b1-2a1c-4d5e-8f0a-1b3d5c7e9f2a",
+      username: "john.doe",
+      email: "john.doe@example.com",
+      passwordHash: "hashedpassword1",
+      createdAt: "2023-01-01T10:00:00Z",
+      displayName: "John Doe",
+      bio: "A passionate practitioner.",
+      profilePictureUrl: "https://example.com/johndoe.jpg",
+      lastLoginAt: "2023-10-26T14:30:00Z"
+    },
+    {
+      id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      username: "jane.smith",
+      email: "jane.smith@example.com",
+      passwordHash: "hashedpassword2",
+      createdAt: "2023-01-02T11:00:00Z",
+      displayName: "Jane Smith",
+      bio: "Mindfulness enthusiast.",
+      profilePictureUrl: "https://example.com/janesmith.jpg",
+      lastLoginAt: "2023-10-25T16:00:00Z"
+    }
+  ])
+  practice_insertMany(data: [
+    {
+      id: "c7d8e9f0-1a2b-3c4d-5e6f-7a8b9c0d1e2f",
+      title: "Morning Meditation",
+      description: "A guided meditation to start your day.",
+      durationMinutes: 15,
+      type: "Meditation",
+      createdAt: "2023-01-10T08:00:00Z",
+      audioUrl: "https://example.com/morning_meditation.mp3",
+      difficultyLevel: "Beginner"
+    },
+    {
+      id: "f1e2d3c4-b5a6-7890-1234-567890abcdef",
+      title: "Deep Breathing Exercise",
+      description: "Techniques for calming your mind.",
+      durationMinutes: 10,
+      type: "Breathing",
+      createdAt: "2023-01-12T09:00:00Z",
+      videoUrl: "https://example.com/deep_breathing.mp4",
+      difficultyLevel: "Intermediate"
+    }
+  ])
+  userPractice_insertMany(data: [
+    {
+      userId: "b4c9e7b1-2a1c-4d5e-8f0a-1b3d5c7e9f2a",
+      practiceId: "c7d8e9f0-1a2b-3c4d-5e6f-7a8b9c0d1e2f",
+      completedAt: "2023-01-11T08:15:00Z",
+      durationPracticedMinutes: 15,
+      rating: 5,
+      userNotes: "Very relaxing start to the day!"
+    },
+    {
+      userId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      practiceId: "c7d8e9f0-1a2b-3c4d-5e6f-7a8b9c0d1e2f",
+      completedAt: "2023-01-12T08:20:00Z",
+      durationPracticedMinutes: 15,
+      rating: 4,
+      userNotes: "Good, but I prefer a longer meditation."
+    },
+    {
+      userId: "b4c9e7b1-2a1c-4d5e-8f0a-1b3d5c7e9f2a",
+      practiceId: "f1e2d3c4-b5a6-7890-1234-567890abcdef",
+      completedAt: "2023-01-13T09:10:00Z",
+      durationPracticedMinutes: 10,
+      rating: 5,
+      userNotes: "Helped me focus for my morning tasks."
+    }
+  ])
+  reflection_insertMany(data: [
+    {
+      userId: "b4c9e7b1-2a1c-4d5e-8f0a-1b3d5c7e9f2a",
+      title: "Post-Meditation Thoughts",
+      content: "Felt very centered after the morning meditation. Noticed increased calm.",
+      createdAt: "2023-01-11T08:30:00Z",
+      associatedPracticeId: "c7d8e9f0-1a2b-3c4d-5e6f-7a8b9c0d1e2f",
+      isPrivate: false
+    },
+    {
+      userId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      title: "Breathing for Stress Relief",
+      content: "Used the deep breathing exercise during a stressful moment at work. It really helped to ground me.",
+      createdAt: "2023-01-13T10:00:00Z",
+      associatedPracticeId: "f1e2d3c4-b5a6-7890-1234-567890abcdef",
+      isPrivate: true
+    }
+  ])
+  group_insertMany(data: [
+    {
+      id: "d9e0f1a2-b3c4-5d6e-7f8a-9b0c1d2e3f4a",
+      creatorId: "b4c9e7b1-2a1c-4d5e-8f0a-1b3d5c7e9f2a",
+      name: "Mindfulness Group",
+      type: "Community",
+      createdAt: "2023-02-01T10:00:00Z",
+      description: "A group for sharing mindfulness practices.",
+      imageUrl: "https://example.com/mindfulness_group.jpg"
+    }
+  ])
+  groupMember_insertMany(data: [
+    {
+      userId: "b4c9e7b1-2a1c-4d5e-8f0a-1b3d5c7e9f2a",
+      groupId: "d9e0f1a2-b3c4-5d6e-7f8a-9b0c1d2e3f4a",
+      joinedAt: "2023-02-01T10:15:00Z",
+      role: "Admin"
+    },
+    {
+      userId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      groupId: "d9e0f1a2-b3c4-5d6e-7f8a-9b0c1d2e3f4a",
+      joinedAt: "2023-02-02T11:00:00Z",
+      role: "Member"
+    }
+  ])
+}

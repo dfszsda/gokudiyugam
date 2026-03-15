@@ -1,25 +1,19 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Firebase and Google Play Services
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep models for Firestore/RTDB
+-keep @androidx.annotation.Keep class com.example.gokudiyugam.model.** { *; }
+-keepclassmembers class com.example.gokudiyugam.model.** {
+    <fields>;
+    <init>();
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Handle Kotlin Serialization/Coroutines in Release
+-keepattributes Signature, *Annotation*, InnerClasses
+-dontwarn javax.annotation.**
+-dontwarn org.checkerframework.**
+-dontwarn com.google.errorprone.annotations.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile,LineNumberTable
-
-# Fix for missing service class references
--dontwarn io.micrometer.context.**
--dontwarn reactor.blockhound.**
+# MediaItem specific
+-keep class com.example.gokudiyugam.model.MediaItem { *; }

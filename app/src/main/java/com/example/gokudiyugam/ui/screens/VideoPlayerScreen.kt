@@ -154,7 +154,15 @@ fun VideoWebView(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                webViewClient = WebViewClient()
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        // CSS to hide YouTube branding elements
+                        val css = ".ytp-chrome-top, .ytp-show-cards-title, .ytp-watermark, .ytp-youtube-button, .ytp-pause-overlay { display: none !important; }"
+                        val js = "var style = document.createElement('style'); style.innerHTML = '$css'; document.head.appendChild(style);"
+                        view?.evaluateJavascript(js, null)
+                    }
+                }
                 webChromeClient = object : WebChromeClient() {
                     override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
                         super.onShowCustomView(view, callback)
@@ -173,32 +181,46 @@ fun VideoWebView(
                     useWideViewPort = true
                     domStorageEnabled = true
                     mediaPlaybackRequiresUserGesture = false
+                    // desktop user agent to avoid "Open App" banners
+                    userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
                 }
                 
                 loadUrl(url)
             }
         },
         modifier = Modifier.fillMaxSize(),
-        update = { _ ->
-            // No update logic needed
+        update = { webView ->
+            if (webView.url != url && !url.isNullOrEmpty()) {
+                webView.loadUrl(url)
+            }
         }
     )
 }
 
 private fun processVideoUrl(url: String): String {
-    return try {
-        if (url.contains("youtube.com/watch?v=")) {
-            val videoId = url.split("v=")[1].split("&")[0]
-            "https://www.youtube.com/embed/$videoId?autoplay=1&modestbranding=1&rel=0"
-        } else if (url.contains("youtu.be/")) {
-            val videoId = url.split("youtu.be/")[1].split("?")[0]
-            "https://www.youtube.com/embed/$videoId?autoplay=1&modestbranding=1&rel=0"
-        } else {
-            url
-        }
-    } catch (e: Exception) {
+    val videoId = extractYoutubeVideoId(url)
+    return if (videoId != null) {
+        "https://www.youtube.com/embed/$videoId?autoplay=1&modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&cc_load_policy=0"
+    } else {
         url
     }
+}
+
+private fun extractYoutubeVideoId(url: String): String? {
+    return try {
+        val patterns = listOf(
+            "v=([^&]+)",
+            "youtu.be/([^?]+)",
+            "embed/([^?]+)",
+            "live/([^?]+)",
+            "shorts/([^?]+)"
+        )
+        for (p in patterns) {
+            val matcher = java.util.regex.Pattern.compile(p).matcher(url)
+            if (matcher.find()) return matcher.group(1)
+        }
+        null
+    } catch (e: Exception) { null }
 }
 
 @Preview(showBackground = true)

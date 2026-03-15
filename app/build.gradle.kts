@@ -25,7 +25,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("C:/Users/flayb/Documents/Projects/Keys/Gokudiyugam/gokudiyugam")
+            storeFile = file("C:/Users/flayb/OneDrive/Documents/Projects/Keys/gukudiyugam/gkays")
             storePassword = "Ghost@4590"
             keyAlias = "key0"
             keyPassword = "Ghost@4590"
