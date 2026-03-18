@@ -9,8 +9,10 @@ data class MediaItem(
     val id: String = "",
     val title: String = "",
     val url: String = "",
-    val type: String = "", // "photo", "video", "audio", "doc"
+    val type: String = "", // "photo", "video", "audio", "doc", "sabha_timetable"
+    val mediaType: String = "", // "photo", "video", "audio", "doc", "file"
     val uploadedBy: String = "",
+    val canDownload: Boolean = true, // New field for download permission
     @ServerTimestamp
     val timestamp: Timestamp? = null
 )

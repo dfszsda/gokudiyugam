@@ -129,7 +129,7 @@ fun GuruhariDarshanScreen(
                         Text("Watching Guruhari Darshan Live", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     
-                    Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 }
             }
 
@@ -155,7 +155,7 @@ fun GuruhariDarshanScreen(
                                 canDelete = canEdit,
                                 onClick = { selectedVideo = video },
                                 onDelete = {
-                                    FirebaseFirestore.getInstance().collection("mediadata").document(video.id).delete()
+                                    FirebaseFirestore.getInstance("mediadata").collection("mediadata").document(video.id).delete()
                                     if (selectedVideo?.id == video.id) selectedVideo = null
                                 }
                             )

@@ -71,7 +71,7 @@ fun PujaDarshanScreen(
             }
             
             // Delete Puja Darshan posts from Firestore
-            val db = FirebaseFirestore.getInstance()
+            val db = FirebaseFirestore.getInstance("mediadata")
             db.collection("mediadata")
                 .whereEqualTo("type", "puja_darshan")
                 .get()

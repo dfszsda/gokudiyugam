@@ -26,12 +26,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.model.User
+import com.example.gokudiyugam.network.GoogleSheetsUploader
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,12 +47,13 @@ fun SettingsScreen(
     onRestartApp: () -> Unit
 ) {
     val context = LocalContext.current
+    val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
     var currentLanguage by remember { mutableStateOf(preferenceManager.getLanguage()) }
     var isDarkMode by remember { mutableStateOf(preferenceManager.isDarkMode()) }
     var selectedColor by remember { mutableIntStateOf(preferenceManager.getBackgroundColor()) }
     
     val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
+    val db = remember { FirebaseFirestore.getInstance("mediadata") }
     val currentUser = auth.currentUser
     
     // State for Profile Fields
@@ -74,7 +79,6 @@ fun SettingsScreen(
     var resetEmail by remember { mutableStateOf("") }
     var isRequestingPassword by remember { mutableStateOf(false) }
 
-    // Fetch user profile from Firestore if it exists
     LaunchedEffect(currentUser?.uid) {
         val uid = currentUser?.uid
         if (uid != null) {
@@ -87,7 +91,6 @@ fun SettingsScreen(
                     mobileNumber = user?.mobileNumber ?: ""
                     dob = user?.dob ?: ""
                     gender = user?.gender ?: ""
-                    // Always prefer auth email or keep it synced
                     email = user?.email?.ifEmpty { currentUser.email ?: "" } ?: currentUser.email ?: ""
                     profilePhotoUrl = user?.profilePhotoUrl ?: ""
                 }
@@ -106,7 +109,6 @@ fun SettingsScreen(
         uri?.let { profilePhotoUrl = it.toString() }
     }
 
-    // Date Picker Dialog
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -132,7 +134,6 @@ fun SettingsScreen(
         }
     }
 
-    // Password Reset Request Logic
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
@@ -233,7 +234,6 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Profile Section
             Text("Profile Information", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -247,7 +247,6 @@ fun SettingsScreen(
                         CircularProgressIndicator()
                     }
                 } else if (!isEditing) {
-                    // Display Mode (Summary)
                     Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
@@ -313,7 +312,6 @@ fun SettingsScreen(
                         }
                     }
                 } else {
-                    // Edit Mode
                     Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
@@ -343,7 +341,6 @@ fun SettingsScreen(
                         ProfileTextField(value = middleName, onValueChange = { middleName = it }, label = "Middle Name", icon = Icons.Default.Person)
                         ProfileTextField(value = lastName, onValueChange = { lastName = it }, label = "Last Name", icon = Icons.Default.Person)
                         
-                        // Email Field (Read-only as per system automatic display)
                         OutlinedTextField(
                             value = email,
                             onValueChange = { },
@@ -358,7 +355,6 @@ fun SettingsScreen(
 
                         ProfileTextField(value = mobileNumber, onValueChange = { mobileNumber = it }, label = "Mobile Number", icon = Icons.Default.Phone)
                         
-                        // Date of Birth with Calendar
                         OutlinedTextField(
                             value = dob,
                             onValueChange = { },
@@ -378,7 +374,6 @@ fun SettingsScreen(
                             )
                         )
                         
-                        // Gender Selection with Radio Buttons (Male, Female, Other)
                         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                             Text("Gender:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             Row(
@@ -430,6 +425,25 @@ fun SettingsScreen(
                                                 isUpdating = false
                                                 isEditing = false
                                                 Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                                                
+                                                lifecycleScope.launch {
+                                                    val currentUname = preferenceManager.getCurrentUsername()
+                                                    val savedPass = currentUname?.let { preferenceManager.getPasswordForUser(it) } ?: ""
+                                                    val role = currentUname?.let { preferenceManager.getUserRoleForAccount(it).name } ?: "NORMAL"
+                                                    
+                                                    GoogleSheetsUploader.uploadUserData(
+                                                        firstName = firstName,
+                                                        middleName = middleName,
+                                                        lastName = lastName,
+                                                        role = role,
+                                                        gender = gender,
+                                                        email = email,
+                                                        mobileNumber = mobileNumber,
+                                                        dob = dob,
+                                                        password = savedPass,
+                                                        uid = uid
+                                                    )
+                                                }
                                             }
                                             .addOnFailureListener { e ->
                                                 isUpdating = false
@@ -458,7 +472,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             
-            // App Settings
             Text("App Preferences", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 

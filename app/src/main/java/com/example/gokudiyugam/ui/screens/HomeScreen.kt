@@ -1,11 +1,14 @@
 package com.example.gokudiyugam.ui.screens
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -24,11 +28,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.gokudiyugam.R
 import com.example.gokudiyugam.model.UserRole
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,28 +51,53 @@ fun HomeScreen(
     onNavigateToMediaLibrary: () -> Unit,
     onProfileClick: () -> Unit,
     onLogout: () -> Unit,
-    onNavigateToGoogleDrive: () -> Unit
+    onNavigateToGoogleDrive: () -> Unit,
+    onNavigateToAdminPanel: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val db = FirebaseFirestore.getInstance("mediadata")
+    val homeImages = remember { mutableStateListOf<String>() }
+
+    LaunchedEffect(Unit) {
+        db.collection("home_images").addSnapshotListener { snapshot, _ ->
+            homeImages.clear()
+            snapshot?.documents?.forEach { doc ->
+                doc.getString("url")?.let { homeImages.add(it) }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             LargeTopAppBar(
                 title = { 
-                    Column {
-                        Text(
-                            stringResource(R.string.baps_mandal),
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.5).sp
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.icon),
+                            contentDescription = "App Logo",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .padding(2.dp),
+                            contentScale = ContentScale.Inside
                         )
-                        Text(
-                            stringResource(R.string.badalpur),
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                stringResource(R.string.baps_mandal),
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.5).sp
+                                )
                             )
-                        )
+                            Text(
+                                stringResource(R.string.badalpur),
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                )
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -124,28 +157,59 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Hero Section
+            // Hero Section with Image Slider
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(220.dp)
                     .shadow(12.dp, RoundedCornerShape(28.dp)),
                 shape = RoundedCornerShape(28.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Box {
-                    Image(
-                        painter = painterResource(id = R.drawable.photo),
-                        contentDescription = "Welcome Image",
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.FillWidth
-                    )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (homeImages.isEmpty()) {
+                        // Fallback Image
+                        Image(
+                            painter = painterResource(id = R.drawable.photo),
+                            contentDescription = "Welcome Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        val pagerState = rememberPagerState(pageCount = { homeImages.size })
+                        
+                        // Auto-scroll logic (5 seconds)
+                        LaunchedEffect(Unit) {
+                            while (true) {
+                                delay(5000)
+                                if (homeImages.size > 1) {
+                                    val nextPage = (pagerState.currentPage + 1) % homeImages.size
+                                    pagerState.animateScrollToPage(nextPage)
+                                }
+                            }
+                        }
+
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { page ->
+                            AsyncImage(
+                                model = homeImages[page],
+                                contentDescription = "Home Slide $page",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+
+                    // Overlay Text Background
                     Box(
                         modifier = Modifier
                             .matchParentSize()
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                    startY = 100f
+                                    startY = 200f
                                 )
                             )
                             .padding(20.dp),
@@ -158,9 +222,9 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = stringResource(R.string.welcome_spiritual_home),
-                                color = Color.White.copy(alpha = 0.8f),
-                                style = MaterialTheme.typography.bodyMedium
+                                text = "BAPS Shri Swaminarayan Mandir, Badalpur",
+                                color = Color.White.copy(alpha = 0.9f),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
@@ -193,6 +257,16 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
+                if (currentUserRole == UserRole.HOST || currentUserRole == UserRole.SUB_HOST) {
+                    item {
+                        FeatureCard(
+                            title = "Admin Panel",
+                            icon = Icons.Default.AdminPanelSettings,
+                            description = "Manage Users & Content",
+                            onClick = onNavigateToAdminPanel
+                        )
+                    }
+                }
                 item { 
                     FeatureCard(
                         title = stringResource(R.string.daily_darshan),
@@ -212,22 +286,22 @@ fun HomeScreen(
                 item { 
                     FeatureCard(
                         title = stringResource(R.string.sabha),
-                        icon = Icons.Default.Schedule,
+                        icon = Icons.Default.Event,
                         description = stringResource(R.string.weekly_schedule),
                         onClick = onNavigateToSabhaTimeTable
-                    ) 
+                    )
                 }
                 item { 
                     FeatureCard(
                         title = stringResource(R.string.functions),
-                        icon = Icons.Default.Event,
+                        icon = Icons.Default.Celebration,
                         description = stringResource(R.string.upcoming_events),
                         onClick = onNavigateToFunctions
-                    ) 
+                    )
                 }
                 item { 
                     FeatureCard(
-                        title = stringResource(R.string.satsang_news),
+                        title = "Sabha Saar",
                         icon = Icons.Default.Newspaper,
                         description = stringResource(R.string.latest_updates),
                         onClick = onNavigateToSatsangNews
@@ -235,11 +309,11 @@ fun HomeScreen(
                 }
                 item { 
                     FeatureCard(
-                        title = stringResource(R.string.settings),
-                        icon = Icons.Default.Settings,
-                        description = stringResource(R.string.preferences),
-                        onClick = onNavigateToSettings
-                    ) 
+                        title = "Google Drive",
+                        icon = Icons.Default.CloudQueue,
+                        description = "Shared Documents",
+                        onClick = onNavigateToGoogleDrive
+                    )
                 }
             }
         }
@@ -248,10 +322,10 @@ fun HomeScreen(
 
 @Composable
 fun FeatureCard(
-    title: String, 
-    icon: ImageVector, 
+    title: String,
+    icon: ImageVector,
     description: String,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -259,61 +333,43 @@ fun FeatureCard(
             .clickable { onClick() }
             .shadow(4.dp, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(20.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.padding(10.dp),
+                    modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                textAlign = TextAlign.Center
+            )
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen(
-        currentUserRole = UserRole.HOST,
-        onNavigateToDailyDarshan = {},
-        onNavigateToKirtan = {},
-        onNavigateToSabhaTimeTable = {},
-        onNavigateToFunctions = {},
-        onNavigateToSatsangNews = {},
-        onNavigateToSettings = {},
-        onNavigateToMediaLibrary = {},
-        onProfileClick = {},
-        onLogout = {},
-        onNavigateToGoogleDrive = {}
-    )
 }

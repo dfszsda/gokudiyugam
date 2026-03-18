@@ -1,5 +1,8 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.gokudiyugam.ui.screens
 
+import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentValues
@@ -9,6 +12,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,7 +24,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,9 +39,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
+import com.example.gokudiyugam.drive.DriveHelper
 import com.example.gokudiyugam.drive.DriveViewModel
 import com.example.gokudiyugam.model.UserRole
 import com.example.gokudiyugam.model.MediaItem
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,26 +66,48 @@ fun MandirDarshanPhotoScreen(
     val isUploading = driveViewModel.isUploading
 
     var selectedPhoto by remember { mutableStateOf<MediaItem?>(null) }
+    var pendingUri by remember { mutableStateOf<Uri?>(null) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var photoTitle by remember { mutableStateOf("") }
+    var allowDownload by remember { mutableStateOf(true) }
     
     val currentUsername = preferenceManager.getCurrentUsername() ?: ""
     val canEdit = currentUserRole == UserRole.HOST ||
                  (currentUserRole == UserRole.SUB_HOST && preferenceManager.hasPermission(currentUsername, "screen_mandir_darshan"))
 
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                driveViewModel.selectedGoogleAccount = account?.account
+                if (pendingUri != null) showAddDialog = true
+            } catch (e: ApiException) {
+                Toast.makeText(context, "Google Login Failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         driveViewModel.fetchCategoryItems("mandir_darshan")
+        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+        if (lastAccount != null) {
+            driveViewModel.selectedGoogleAccount = lastAccount.account
+        }
     }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            driveViewModel.uploadToCategory(
-                context = context,
-                uri = it,
-                title = "Mandir Darshan ${System.currentTimeMillis()}",
-                driveType = "photo",
-                category = "mandir_darshan"
-            )
+            pendingUri = it
+            if (driveViewModel.selectedGoogleAccount == null) {
+                googleSignInLauncher.launch(DriveHelper.getGoogleSignInClient(context).signInIntent)
+            } else {
+                showAddDialog = true
+            }
         }
     }
 
@@ -160,6 +189,49 @@ fun MandirDarshanPhotoScreen(
             }
         }
 
+        if (showAddDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddDialog = false },
+                title = { Text("Photo Details") },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = photoTitle,
+                            onValueChange = { photoTitle = it },
+                            label = { Text("Photo Title") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Allow users to download?", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Switch(checked = allowDownload, onCheckedChange = { allowDownload = it })
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        if (photoTitle.isNotBlank() && pendingUri != null) {
+                            driveViewModel.uploadToCategory(
+                                context = context,
+                                uri = pendingUri!!,
+                                title = photoTitle,
+                                driveType = "photo",
+                                category = "mandir_darshan",
+                                canDownload = allowDownload
+                            )
+                            showAddDialog = false
+                            photoTitle = ""
+                            pendingUri = null
+                        }
+                    }) { Text("Upload") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddDialog = false }) { Text("Cancel") }
+                }
+            )
+        }
+
         if (selectedPhoto != null) {
             AlertDialog(
                 onDismissRequest = { selectedPhoto = null },
@@ -168,22 +240,21 @@ fun MandirDarshanPhotoScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = {
-                            scope.launch {
-                                val urlToSave = selectedPhoto?.url
-                                if (urlToSave != null) {
-                                    Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
-                                    val success = downloadAndSaveImage(context, urlToSave)
-                                    if (success) {
-                                        showDownloadNotification(context)
-                                    } else {
-                                        Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+                        if (selectedPhoto?.canDownload == true || currentUserRole == UserRole.HOST) {
+                            TextButton(onClick = {
+                                scope.launch {
+                                    val urlToSave = selectedPhoto?.url
+                                    if (urlToSave != null) {
+                                        Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
+                                        val success = downloadAndSaveImage(context, urlToSave)
+                                        if (success) showDownloadNotification(context)
+                                        else Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
                                     }
+                                    selectedPhoto = null
                                 }
-                                selectedPhoto = null
+                            }) {
+                                Text("Download")
                             }
-                        }) {
-                            Text("Download")
                         }
                         
                         TextButton(onClick = { selectedPhoto = null }) {

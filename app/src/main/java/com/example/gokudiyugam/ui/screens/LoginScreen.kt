@@ -1,9 +1,7 @@
 package com.example.gokudiyugam.ui.screens
 
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -14,10 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -25,9 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
 import com.example.gokudiyugam.model.UserRole
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.delay
 
 @Composable
 fun LoginScreen(
@@ -35,65 +33,21 @@ fun LoginScreen(
     onLoginSuccess: (String, UserRole) -> Unit,
     onRequireVerification: (String, String) -> Unit,
     onSignUpClick: () -> Unit,
-    onEmailSignInClick: (String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit
+    onEmailSignInClick: (String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit,
+    onGuestLoginClick: ((Boolean) -> Unit, (String) -> Unit) -> Unit,
+    onGoogleSignInClick: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
-    var isCheckingEmail by remember { mutableStateOf(false) }
-    var isEmailRegistered by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    var isGmailUser by remember { mutableStateOf(false) }
 
-    // Forgot Password States
     var showForgotDialog by remember { mutableStateOf(false) }
     var isRequestingReset by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val db = FirebaseFirestore.getInstance()
-    val auth = FirebaseAuth.getInstance()
-    
-    val adminEmail = "bssbadalpur@gmail.com"
-    val adminPassword = "Admin@123"
+    val db = FirebaseFirestore.getInstance("mediadata")
 
-    // ઓટોમેટિક ઈમેલ ચેક લોજિક
-    LaunchedEffect(email) {
-        if (email.length > 5 && (email.contains("@") || email == "admin")) {
-            isCheckingEmail = true
-            delay(1000) 
-
-            if (email == "admin" || email == adminEmail) {
-                isEmailRegistered = true
-                errorMessage = ""
-                isCheckingEmail = false
-            } else {
-                db.collection("users")
-                    .whereEqualTo("email", email)
-                    .get()
-                    .addOnSuccessListener { result ->
-                        if (!result.isEmpty) {
-                            isEmailRegistered = true
-                            errorMessage = ""
-                            isGmailUser = email.endsWith("@gmail.com")
-                        } else {
-                            isEmailRegistered = false
-                            if (email.contains("@")) {
-                                errorMessage = "Email not found. Please Sign Up."
-                            }
-                        }
-                        isCheckingEmail = false
-                    }
-                    .addOnFailureListener {
-                        isCheckingEmail = false
-                    }
-            }
-        } else {
-            isEmailRegistered = false
-            errorMessage = ""
-        }
-    }
-
-    // Forgot Password Request Dialog
     if (showForgotDialog) {
         AlertDialog(
             onDismissRequest = { showForgotDialog = false },
@@ -104,6 +58,10 @@ fun LoginScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        if (email.isBlank()) {
+                            Toast.makeText(context, "Please enter your email first", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
                         isRequestingReset = true
                         db.collection("users").whereEqualTo("email", email).get()
                             .addOnSuccessListener { result ->
@@ -143,11 +101,7 @@ fun LoginScreen(
                     enabled = !isRequestingReset
                 ) {
                     if (isRequestingReset) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                     } else {
                         Text("Send Request")
                     }
@@ -183,13 +137,18 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
-                    modifier = Modifier.size(90.dp),
+                    modifier = Modifier.size(100.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 6.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
+                        Image(
+                            painter = painterResource(id = R.drawable.icon),
+                            contentDescription = "App Logo",
+                            modifier = Modifier.size(80.dp).clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                 }
 
@@ -206,91 +165,112 @@ fun LoginScreen(
                     Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         OutlinedTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = { 
+                                email = it 
+                                errorMessage = "" // Clear error when user types
+                            },
                             label = { Text("Email Address") },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                            trailingIcon = {
-                                if (isCheckingEmail) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                                } else if (isEmailRegistered) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50))
-                                }
-                            },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
-                            isError = errorMessage.isNotEmpty() && !isCheckingEmail
+                            isError = errorMessage.isNotEmpty()
                         )
 
-                        if (errorMessage.isNotEmpty()) {
-                            Text(text = errorMessage, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall)
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        AnimatedVisibility(visible = isEmailRegistered, enter = fadeIn() + expandVertically()) {
-                            Column {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedTextField(
-                                    value = password,
-                                    onValueChange = { password = it },
-                                    label = { Text("Password") },
-                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                                    visualTransformation = PasswordVisualTransformation(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
-                                    singleLine = true
-                                )
-                                
-                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                                    TextButton(onClick = { showForgotDialog = true }) {
-                                        Text("Forgot Password?", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Button(
-                                    onClick = {
-                                        if (password.isNotEmpty()) {
-                                            if ((email == "admin" && password == "admin") || (email == adminEmail && password == adminPassword)) {
-                                                onLoginSuccess("Admin", UserRole.HOST)
-                                            } else {
-                                                isLoading = true
-                                                onEmailSignInClick(email, password, { isLoading = it }, { errorMessage = it })
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    enabled = !isLoading
-                                ) {
-                                    if (isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = Color.White,
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Text("Sign In", fontWeight = FontWeight.Bold)
-                                    }
-                                }
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { 
+                                password = it 
+                                errorMessage = "" // Clear error when user types
+                            },
+                            label = { Text("Password") },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true,
+                            isError = errorMessage.isNotEmpty()
+                        )
+                        
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                            TextButton(onClick = { showForgotDialog = true }) {
+                                Text("Forgot Password?", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                             }
                         }
 
-                        if (isGmailUser && !isEmailRegistered && !isCheckingEmail) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Or connect directly with", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = { /* TODO: Trigger Google Login */ },
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                        if (errorMessage.isNotEmpty()) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                if (email.isBlank() || password.isBlank()) {
+                                    errorMessage = "Please enter both email and password"
+                                } else {
+                                    isLoading = true
+                                    onEmailSignInClick(email, password, { isLoading = it }, { errorMessage = it })
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            enabled = !isLoading
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Text("Sign In", fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            HorizontalDivider(modifier = Modifier.weight(1f))
+                            Text("OR", modifier = Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            HorizontalDivider(modifier = Modifier.weight(1f))
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = onGoogleSignInClick,
+                                modifier = Modifier.weight(1f).height(56.dp),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
+                                contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.AccountBox, contentDescription = null, tint = Color.Red)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                    Icon(imageVector = Icons.Default.AccountCircle, contentDescription = "Google Logo", tint = Color(0xFF4285F4))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Continue with Google", color = Color.Black)
+                                    Text("Google", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    isLoading = true
+                                    onGuestLoginClick({ isLoading = it }, { errorMessage = it })
+                                },
+                                modifier = Modifier.weight(1f).height(56.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                enabled = !isLoading,
+                                contentPadding = PaddingValues(horizontal = 4.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                    Icon(Icons.Default.Person, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Guest", fontWeight = FontWeight.Medium, fontSize = 13.sp)
                                 }
                             }
                         }

@@ -18,7 +18,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.5.7"
+        versionName = "1.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -130,9 +130,9 @@ dependencies {
     implementation(libs.androidx.biometric)
     
     // Media3 for Background Audio
-    implementation("androidx.media3:media3-exoplayer:1.9.2")
-    implementation("androidx.media3:media3-ui:1.9.2")
-    implementation("androidx.media3:media3-session:1.9.2")
+    implementation("androidx.media3:media3-exoplayer:1.9.3")
+    implementation("androidx.media3:media3-ui:1.9.3")
+    implementation("androidx.media3:media3-session:1.9.3")
     
     // AI Integration: Google Generative AI SDK
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
@@ -145,8 +145,8 @@ dependencies {
     implementation(libs.google.http.client.android)
     implementation(libs.google.http.client.gson)
 
-    implementation("io.grpc:grpc-okhttp:1.79.0")
-    implementation("io.grpc:grpc-android:1.79.0")
-    implementation("io.grpc:grpc-stub:1.79.0")
-    implementation("io.grpc:grpc-protobuf-lite:1.79.0")
+    implementation("io.grpc:grpc-okhttp:1.80.0")
+    implementation("io.grpc:grpc-android:1.80.0")
+    implementation("io.grpc:grpc-stub:1.80.0")
+    implementation("io.grpc:grpc-protobuf-lite:1.80.0")
 }

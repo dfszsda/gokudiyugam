@@ -17,3 +17,8 @@
 
 # MediaItem specific
 -keep class com.example.gokudiyugam.model.MediaItem { *; }
+
+# Fix R8 issues with Micrometer and Reactor
+-dontwarn io.micrometer.context.**
+-dontwarn reactor.blockhound.**
+-dontwarn reactor.util.context.ReactorContextAccessor

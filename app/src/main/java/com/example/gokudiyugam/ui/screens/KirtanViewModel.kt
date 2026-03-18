@@ -72,7 +72,7 @@ class KirtanViewModel : ViewModel() {
     fun fetchSharedKirtans() {
         if (sharedKirtansListener != null) return
         
-        val db = FirebaseFirestore.getInstance()
+        val db = FirebaseFirestore.getInstance("mediadata")
         sharedKirtansListener = db.collection("mediadata")
             .whereEqualTo("type", "audio")
             .addSnapshotListener { snapshot, e ->

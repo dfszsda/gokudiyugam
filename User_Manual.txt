@@ -1,0 +1,27 @@
+Gokudiyugam App - User Manual
+===============================
+
+1. Introduction:
+   This app is designed for the BAPS Mandal (Badalpur) to manage spiritual activities, media, and schedules.
+
+2. Getting Started:
+   - Login/Sign Up: Users can create an account using their email.
+   - Profile: Set up your name and mandal details.
+   - Language: The app supports English, Gujarati, and Hindi.
+
+3. Main Features:
+   - Daily Darshan: View morning darshan photos.
+   - Kirtan: Listen to devotional songs.
+   - Sabha Time Table: Check weekly sabha timings and special updates.
+   - Functions: Stay updated with upcoming events and festivals.
+   - Satsang News: Read latest updates from the mandal.
+
+4. Admin Features (For Host & Sub-Host):
+   - Admin Panel: Accessible only to authorized roles.
+   - User Management: Change roles (Host, Sub-Host, Normal) and set screen-wise permissions.
+   - Delete Data: Only users with "Delete Permission" enabled can remove content.
+   - Auto-Translate: When posting updates, use the "Translate" button to automatically convert text into Gujarati and Hindi using AI.
+
+5. Security:
+   - The app supports Biometric (Fingerprint/Face) login for enhanced security.
+   - AI Content Filtering: Automatically blocks inappropriate content.

@@ -57,6 +57,10 @@ class PreferenceManager(context: Context) {
         editor.apply()
     }
 
+    fun getPasswordForUser(username: String): String {
+        return sharedPreferences.getString("user_$username", "") ?: ""
+    }
+
     fun getAllUsernames(): Set<String> {
         return sharedPreferences.getStringSet("all_usernames", emptySet()) ?: emptySet()
     }
@@ -107,9 +111,13 @@ class PreferenceManager(context: Context) {
         return sharedPreferences.getStringSet("perms_$username", emptySet()) ?: emptySet()
     }
 
+    fun saveUserPermissions(username: String, permissions: Set<String>) {
+        sharedPreferences.edit().putStringSet("perms_$username", permissions).apply()
+    }
+
     fun hasPermission(username: String, permission: String): Boolean {
         val role = getUserRoleForAccount(username)
-        if (role == UserRole.HOST && permission == "manage_accounts") return true
+        if (role == UserRole.HOST) return true
         val perms = getUserPermissions(username)
         return perms.contains(permission)
     }

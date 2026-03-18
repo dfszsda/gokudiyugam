@@ -23,6 +23,8 @@
 
     <!-- Login/Signup -->
     <string name="username">उपयोगकर्ता नाम</string>
+    <string name="email">ईमेल पता</string>
+    <string name="username_or_email">उपयोगकर्ता नाम या ईमेल</string>
     <string name="password">पासवर्ड</string>
     <string name="confirm_password">पासवर्ड की पुष्टि करें</string>
     <string name="sign_in">साइन इन करें</string>
@@ -39,14 +41,28 @@
     <string name="quick_create">त्वरित निर्माण</string>
     <string name="back_to_selection">चयन पर वापस जाएं</string>
     <string name="back_to_login">लॉगिन पर वापस जाएं</string>
+    <string name="sign_in_with_google">गूगल के साथ साइन इन करें</string>
     <string name="error_credentials">कृपया दोनों क्रेडेंशियल दर्ज करें</string>
     <string name="error_not_found">खाता \'%1$s\' नहीं मिला</string>
     <string name="error_exists">खाता \'%1$s\' पहले से मौजूद है</string>
+    <string name="error_email_exists">ईमेल पहले से ही पंजीकृत है</string>
     <string name="error_password_match">पासवर्ड मेल नहीं खाते</string>
     <string name="error_invalid_password">अमान्य पासवर्ड</string>
     <string name="error_role_mismatch">यह खाता %1$s के रूप में पंजीकृत है</string>
     <string name="error_enter_username">कृपया उपयोगकर्ता नाम दर्ज करें</string>
+    <string name="error_enter_email">कृपया एक वैध ईमेल दर्ज करें</string>
     <string name="error_check_inputs">अपने इनपुट की जाँच करें</string>
+    <string name="error_google_sign_in">गूगल साइन-इन विफल रहा</string>
+
+    <!-- Verification -->
+    <string name="verify_email">ईमेल सत्यापित करें</string>
+    <string name="verification_code">सत्यापन कोड</string>
+    <string name="otp_sent_to">%1$s पर ओटीपी भेजा गया</string>
+    <string name="enter_otp">6-अंकों का ओटीपी दर्ज करें</string>
+    <string name="verify">सत्यापित करें</string>
+    <string name="resend_otp">ओटीपी पुन: भेजें</string>
+    <string name="error_invalid_otp">अमान्य ओटीपी। कृपया पुनः प्रयास करें।</string>
+    <string name="error_expired_otp">ओटीपी समाप्त हो गया। कृपया पुन: भेजें।</string>
 
     <!-- Home -->
     <string name="baps_mandal">BAPS श्री स्वामीनारायण मंदिर</string>
@@ -88,7 +104,7 @@
     <string name="update_password_desc">अपना खाता पासवर्ड अपडेट करें</string>
     <string name="language">भाषा</string>
     <string name="app_language">एप्लिकेशन भाषा</string>
-    <string name="version">संस्करण 1.5.62</string>
+    <string name="version">संस्करण 1.9.0</string>
     <string name="choose_bg_color">पृष्ठभूमि रंग चुनें</string>
     <string name="old_password">पुराना पासवर्ड</string>
     <string name="new_password">नया पासवर्ड</string>
@@ -129,15 +145,55 @@
     <string name="sabha_schedule">सभा समय सारिणी</string>
     <string name="sabha_header_text">साप्ताहिक सत्संग सभाओं के माध्यम से मूल्यों का पोषण।</string>
     <string name="sabha_sanyukt">संयुक्त सभा</string>
-    <string name="sabha_sanyukt_time">रविवार, शाम 8:30 बजे</string>
-    <string name="sabha_yuva_yuvati">युवा/युवती सभा</string>
-    <string name="sabha_yuva_yuvati_time">शनिवार, शाम 8:30 बजे</string>
-    <string name="sabha_bal_balika">बाल/बालिका सभा</string>
-    <string name="sabha_bal_balika_time">रविवार, शाम 4:00 बजे</string>
-    <string name="sabha_yst_bss">YST/BSS</string>
-    <string name="sabha_yst_bss_time">शुक्रवार, रात 9:00 बजे</string>
+    <string name="sabha_sanyukt_time">रविवार, शाम 5:30 बजे</string>
+    <string name="sabha_yuva">युवा सभा</string>
+    <string name="sabha_yuva_time">शनिवार, शाम 7:00 बजे</string>
+    <string name="sabha_yuvati">युवती सभा</string>
+    <string name="sabha_yuvati_time">शनिवार, शाम 7:00 बजे</string>
+    <string name="sabha_bal">बाल सभा</string>
+    <string name="sabha_bal_time">रविवार, शाम 4:00 बजे</string>
+    <string name="sabha_balika">बालिका सभा</string>
+    <string name="sabha_balika_time">रविवार, शाम 4:00 बजे</string>
+    <string name="sabha_yst">YST सभा</string>
+    <string name="sabha_yst_time">शुक्रवार, रात 8:00 बजे</string>
+    <string name="sabha_bss">BSS सभा</string>
+    <string name="sabha_bss_time">शुक्रवार, रात 8:00 बजे</string>
     <string name="sabha_mahila">महिला सभा</string>
     <string name="sabha_mahila_time">शनिवार, शाम 4:00 बजे</string>
+    <string name="sabha_shishu">शिशु सभा</string>
+    <string name="sabha_shishu_time">रविवार, दोपहर 3:00 बजे</string>
+
+    <!-- Sabha Detail Screen -->
+    <string name="select_mandal">मंडल चुनें</string>
+    <string name="select_sabha">सभा चुनें</string>
+    <string name="sabha_number">सभा संख्या</string>
+    <string name="select_topic">विषय चुनें</string>
+    <string name="enter_name">सदस्य का नाम दर्ज करें</string>
+    <string name="mandal_badalpur">बादलपुर</string>
+    <string name="mandal_srijipura">श्रीजीपुरा</string>
+    <string name="show_mandal">मंडल</string>
+    <string name="show_sabha">सभा</string>
+    <string name="topic_name">विषय का नाम</string>
+    <string name="member_name_label">सदस्य का नाम</string>
+    <string name="add_topic">विषय जोड़ें</string>
+    <string name="save_meeting">बैठक सहेजें</string>
+    <string name="add_mandal">मंडल जोड़ें</string>
+    <string name="new_mandal_name">नया मंडल नाम</string>
+    <string name="meeting_details">बैठक का विवरण</string>
+    <string name="topic_placeholder">विषय %1$d दिखाएं</string>
+    <string name="topic_name_placeholder">विषय %1$d का नाम दिखाएं</string>
+    <string name="sabha_number_datetime">दिनांक और समय के साथ सभा संख्या</string>
+    <string name="ai_translating">AI सभी भाषाओं में अनुवाद कर रहा है...</string>
+    <string name="verify_translations">अनुवाद सत्यापित करें</string>
+    <string name="confirm_and_upload">पुष्टि करें और अपलोड करें</string>
+
+    <!-- Satsang News -->
+    <string name="add_news">समाचार जोड़ें</string>
+    <string name="news_title">समाचार का शीर्षक</string>
+    <string name="news_content">समाचार सामग्री</string>
+    <string name="post_news">समाचार पोस्ट करें</string>
+    <string name="daily_satsang_updates">दैनिक सत्संग अपडेट</string>
+    <string name="no_news_available">फिलहाल कोई समाचार उपलब्ध नहीं है।</string>
 
     <!-- Puja Darshan -->
     <string name="edit_link">लिंक संपादित करें</string>
@@ -173,4 +229,5 @@
     <string name="verifying_ai">AI आपकी पहुँच की पुष्टि कर रहा है...</string>
     <string name="ai_verified">AI सत्यापित</string>
     <string name="ai_denied">AI द्वारा पहुँच अस्वीकार</string>
+    <string name="send_link">लिंक भेजें</string>
 </resources>

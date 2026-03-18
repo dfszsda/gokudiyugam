@@ -19,7 +19,7 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 class MediaViewModel : ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
+    private val db = FirebaseFirestore.getInstance("mediadata")
     private val rtdb = FirebaseDatabase.getInstance().getReference("mediadata")
     private val storage = FirebaseStorage.getInstance()
     private val auth = FirebaseAuth.getInstance()

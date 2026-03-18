@@ -1,5 +1,12 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.gokudiyugam.ui.screens
 
+import android.app.Activity
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,9 +16,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,13 +27,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
+import com.example.gokudiyugam.drive.DriveHelper
+import com.example.gokudiyugam.drive.DriveViewModel
 import com.example.gokudiyugam.model.UserRole
-import com.example.gokudiyugam.ui.theme.GokudiyugamTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,46 +43,60 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun KirtanScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: (String) -> Unit,
-    kirtanViewModel: KirtanViewModel = viewModel()
+    kirtanViewModel: KirtanViewModel = viewModel(),
+    driveViewModel: DriveViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val db = FirebaseFirestore.getInstance()
+    val db = FirebaseFirestore.getInstance("mediadata")
     val preferenceManager = remember { PreferenceManager(context) }
     
     val currentUser = preferenceManager.getCurrentUsername() ?: ""
     val userRole = preferenceManager.getUserRoleForAccount(currentUser)
     val permissions = preferenceManager.getUserPermissions(currentUser)
     
-    // Logic: Only HOST or SUB_HOST with 'screen_kirtan' permission can see Shared Kirtans
-    val canSeeShared = userRole == UserRole.HOST || (userRole == UserRole.SUB_HOST && permissions.contains("screen_kirtan"))
+    val canEdit = userRole == UserRole.HOST || (userRole == UserRole.SUB_HOST && permissions.contains("screen_kirtan"))
 
-    var sharedKirtanCount by remember { mutableIntStateOf(0) }
+    var searchQuery by remember { mutableStateOf("") }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var selectedCategoryForAdd by remember { mutableStateOf("Arati") }
+    var kirtanTitle by remember { mutableStateOf("") }
+    var selectedAudioUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedAudioName by remember { mutableStateOf("No file selected") }
 
-    val baseCategories = listOf(
-        stringResource(R.string.kirtan_category_arati),
-        stringResource(R.string.kirtan_category_thal),
-        stringResource(R.string.kirtan_category_dhun),
-        stringResource(R.string.kirtan_category_prathana),
-        stringResource(R.string.kirtan_category_bhajan),
-        stringResource(R.string.kirtan_category_puja_vidhi),
-        stringResource(R.string.kirtan_category_others),
-        stringResource(R.string.kirtan_category_favorite)
+    val categories = listOf(
+        "Arati", "Thal", "Dhun", "Prathana", "Bhajan", "Puja Vidhi", "Others", "Favorite", "All Kirtans"
     )
 
-    // Build the final list based on permissions
-    val kirtanCategories = remember(canSeeShared) {
-        if (canSeeShared) baseCategories + "Shared Kirtans" else baseCategories
+    val audioPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedAudioUri = it
+            // Simple way to get a display name, could be improved
+            selectedAudioName = it.lastPathSegment ?: "Selected Audio"
+        }
     }
 
-    // Listen to shared kirtans count from Firestore
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                driveViewModel.selectedGoogleAccount = account?.account
+                showAddDialog = true
+            } catch (e: ApiException) {
+                Toast.makeText(context, "Google Login Failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         kirtanViewModel.initController(context)
-        if (canSeeShared) {
-            db.collection("shared_data")
-                .whereEqualTo("category", "Kirtan")
-                .addSnapshotListener { snapshot, _ ->
-                    sharedKirtanCount = snapshot?.size() ?: 0
-                }
+        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+        if (lastAccount != null) {
+            driveViewModel.selectedGoogleAccount = lastAccount.account
         }
     }
 
@@ -85,7 +106,7 @@ fun KirtanScreen(
                 title = { Text(stringResource(R.string.kirtan_muktavali), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -95,73 +116,140 @@ fun KirtanScreen(
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Header Section
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(bottom = 32.dp, start = 24.dp, end = 24.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.kirtan_header_text),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
-                )
+        floatingActionButton = {
+            if (canEdit) {
+                FloatingActionButton(onClick = {
+                    if (driveViewModel.selectedGoogleAccount == null) {
+                        googleSignInLauncher.launch(DriveHelper.getGoogleSignInClient(context).signInIntent)
+                    } else {
+                        showAddDialog = true
+                    }
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Kirtan")
+                }
             }
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                placeholder = { Text("Search Kirtan...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true
+            )
 
-            // Categories Grid
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(24.dp),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(y = (-20).dp)
-                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(top = 24.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(kirtanCategories) { category ->
-                    val isFavoriteCategory = category == stringResource(R.string.kirtan_category_favorite)
-                    val isSharedCategory = category == "Shared Kirtans"
-                    
+                items(categories) { category ->
                     KirtanCategoryCard(
                         label = category,
-                        isFavorite = isFavoriteCategory,
-                        isShared = isSharedCategory,
-                        count = if (isFavoriteCategory) kirtanViewModel.favoriteKirtans.size else if (isSharedCategory) sharedKirtanCount else 0,
+                        isFavorite = category == "Favorite",
+                        isAll = category == "All Kirtans",
                         onClick = { onNavigateToPlayer(category) }
                     )
                 }
-                
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            }
+        }
+
+        if (showAddDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddDialog = false },
+                title = { Text("Add New Kirtan") },
+                text = {
+                    Column {
+                        Text("Category:", fontWeight = FontWeight.Bold)
+                        var expanded by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { expanded = true }) { 
+                                Text(selectedCategoryForAdd)
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                            }
+                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                categories.filter { it != "Favorite" && it != "All Kirtans" }.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat) }, 
+                                        onClick = { 
+                                            selectedCategoryForAdd = cat
+                                            expanded = false 
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = kirtanTitle, 
+                            onValueChange = { kirtanTitle = it }, 
+                            label = { Text("Kirtan Title") }, 
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
                         )
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text("Select Audio File:", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Button(
+                                onClick = { audioPickerLauncher.launch("audio/*") },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                            ) {
+                                Icon(Icons.Default.AudioFile, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Pick Audio")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                stringResource(R.string.coming_soon),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = selectedAudioName,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (kirtanTitle.isNotBlank() && selectedAudioUri != null) {
+                                driveViewModel.uploadToCategory(
+                                    context = context,
+                                    uri = selectedAudioUri!!,
+                                    title = kirtanTitle,
+                                    driveType = "audio",
+                                    category = selectedCategoryForAdd.lowercase()
+                                )
+                                showAddDialog = false
+                                kirtanTitle = ""
+                                selectedAudioUri = null
+                                selectedAudioName = "No file selected"
+                            } else {
+                                Toast.makeText(context, "Please enter title and select audio", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = !driveViewModel.isUploading
+                    ) {
+                        if (driveViewModel.isUploading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                        } else {
+                            Text("Upload")
+                        }
+                    }
+                },
+                dismissButton = { 
+                    TextButton(onClick = { showAddDialog = false }) { Text("Cancel") } 
                 }
-            }
+            )
         }
     }
 }
@@ -170,73 +258,38 @@ fun KirtanScreen(
 fun KirtanCategoryCard(
     label: String, 
     isFavorite: Boolean = false,
-    isShared: Boolean = false,
-    count: Int = 0,
+    isAll: Boolean = false,
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().height(110.dp).clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
-                isFavorite -> MaterialTheme.colorScheme.secondaryContainer
-                isShared -> MaterialTheme.colorScheme.tertiaryContainer
+                isFavorite -> Color(0xFFFFEBEE)
+                isAll -> Color(0xFFE3F2FD)
                 else -> MaterialTheme.colorScheme.surface
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            BadgedBox(
-                badge = {
-                    if (count > 0) {
-                        Badge { Text(count.toString()) }
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector = when {
-                        isFavorite -> Icons.Default.Favorite
-                        isShared -> Icons.Default.CloudDownload
-                        else -> Icons.Default.MusicNote
-                    },
-                    contentDescription = null,
-                    tint = when {
-                        isFavorite -> Color.Red
-                        isShared -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.secondary
-                    },
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                textAlign = TextAlign.Center,
-                color = when {
-                    isFavorite -> MaterialTheme.colorScheme.onSecondaryContainer
-                    isShared -> MaterialTheme.colorScheme.onTertiaryContainer
-                    else -> MaterialTheme.colorScheme.onSurface
-                }
+        Column(modifier = Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Icon(
+                imageVector = when {
+                    isFavorite -> Icons.Default.Favorite
+                    isAll -> Icons.Default.AllInclusive
+                    else -> Icons.Default.MusicNote
+                },
+                contentDescription = null,
+                tint = when {
+                    isFavorite -> Color.Red
+                    isAll -> Color(0xFF1976D2)
+                    else -> MaterialTheme.colorScheme.primary
+                },
+                modifier = Modifier.size(28.dp)
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = label, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center)
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun KirtanPagePreview() {
-    GokudiyugamTheme {
-        KirtanScreen(onBack = {}, onNavigateToPlayer = {})
     }
 }

@@ -1,0 +1,34 @@
+Gokudiyugam App - Developer Documentation
+=========================================
+
+1. Technical Stack:
+   - Language: Kotlin
+   - UI Framework: Jetpack Compose (Modern Android UI)
+   - Database/Auth: Firebase (Firestore, Auth)
+   - AI Integration: Google Gemini 1.5 Flash (via Generative AI SDK)
+   - Media: Media3 Exoplayer for Kirtan and Video playback.
+   - Storage: Google Drive API integration for dynamic content.
+
+2. Architecture:
+   - The app follows a modern MVVM (Model-View-ViewModel) pattern.
+   - UI Screens: Located in `ui/screens/`.
+   - ViewModels: Manage state and business logic (e.g., `DriveViewModel`).
+   - Models: Data classes in `model/` (e.g., `UserProfile`, `UserRole`, `SabhaMeeting`).
+
+3. Core Components:
+   - AIService.kt: Handles content safety checks and multi-language translation using Gemini AI.
+   - PreferenceManager.kt: Manages local storage (SharedPreferences) for user sessions, language settings, and local permissions.
+   - BiometricManager.kt: Implementation for Fingerprint/Face ID authentication.
+
+4. Permission System:
+   - Roles: HOST, SUB_HOST, NORMAL.
+   - Permissions are stored in Firestore under the `users` collection and cached locally.
+   - Admin Panel allows granular control over which Sub-Host can access which screen (e.g., "Sabha", "Kirtan").
+
+5. Multi-Language Support:
+   - Local strings are managed via `res/values/strings.xml` (en, gu, hi).
+   - Dynamic data (from Firebase) uses a multi-field approach (e.g., `titleEn`, `titleGu`, `titleHi`) supported by the Auto-Translate feature in the admin side.
+
+6. Deployment:
+   - Requires `google-services.json` for Firebase.
+   - API Keys for Gemini AI should be managed via `BuildConfig`.
