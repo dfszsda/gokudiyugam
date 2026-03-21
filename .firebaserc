@@ -1,6 +1,7 @@
 {
   "projects": {
-    "key0": "gokudiyugam"
+    "key0": "gokudiyugam",
+    "default": "gokudiyugam"
   },
   "targets": {},
   "etags": {}

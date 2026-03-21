@@ -1,5 +1,12 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.gokudiyugam.ui.screens
 
+import android.app.Activity
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,9 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.gokudiyugam.drive.DriveHelper
 import com.example.gokudiyugam.drive.DriveViewModel
 import com.example.gokudiyugam.model.UserRole
 import com.example.gokudiyugam.model.MediaItem
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,8 +42,29 @@ fun DriveScreen(
 
     var showPostDialog by remember { mutableStateOf(false) }
 
+    // Google Sign-In Launcher
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                viewModel.selectedGoogleAccount = account?.account
+                showPostDialog = true 
+            } catch (e: ApiException) {
+                Log.e("DriveScreen", "Google Sign-In failed", e)
+                Toast.makeText(context, "Google Login Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.fetchCategoryItems("all_uploads")
+        val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+        if (lastAccount != null) {
+            viewModel.selectedGoogleAccount = lastAccount.account
+        }
     }
 
     Scaffold(
@@ -50,7 +81,13 @@ fun DriveScreen(
         floatingActionButton = {
             if (currentUserRole == UserRole.HOST || currentUserRole == UserRole.SUB_HOST) {
                 ExtendedFloatingActionButton(
-                    onClick = { showPostDialog = true },
+                    onClick = {
+                        if (viewModel.selectedGoogleAccount == null) {
+                            googleSignInLauncher.launch(DriveHelper.getGoogleSignInClient(context).signInIntent)
+                        } else {
+                            showPostDialog = true
+                        }
+                    },
                     icon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
                     text = { Text("Upload to Cloud") }
                 )
@@ -104,7 +141,7 @@ fun DriveScreen(
             UploadDialog(
                 onDismiss = { showPostDialog = false },
                 onUpload = { uri, title, type ->
-                    viewModel.uploadPublicPost(context, uri, title, type)
+                    viewModel.uploadToCategory(context, uri, title, type, "all_uploads")
                     showPostDialog = false
                 },
                 onYouTubePost = { title, url ->

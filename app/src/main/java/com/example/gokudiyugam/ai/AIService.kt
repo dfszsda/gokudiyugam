@@ -9,16 +9,14 @@ import kotlinx.coroutines.withContext
 import com.example.gokudiyugam.BuildConfig
 
 object AIService {
-    // Gemini API setup - Using BuildConfig for security to avoid hardcoding keys
     @SuppressLint("SecretInSource")
     private val generativeModel = GenerativeModel(
         modelName = "gemini-1.5-flash",
-        apiKey = "AIzaSyDA_LP_fOzKRbIULKemHUXORrdqBzcXDH0"
+        apiKey = "AIzaSyADpxgcenbIoa0jX7OAIwDQwRxlX2VHnxA"
     )
 
     /**
      * 1. Real Content Filtering
-     * Uses Generative AI to analyze if text is appropriate for a BAPS spiritual environment.
      */
     suspend fun isContentSafe(text: String): Boolean = withContext(Dispatchers.IO) {
         if (text.isBlank()) return@withContext true
@@ -32,13 +30,12 @@ object AIService {
             return@withContext result == "SAFE"
         } catch (e: Exception) {
             Log.e("AIService", "Safety Check Failed: ${e.message}")
-            return@withContext true // Fail-safe to avoid blocking users on API error
+            return@withContext true 
         }
     }
 
     /**
      * 2. Dynamic Cloud AI Translation
-     * Translates content dynamically into Gujarati and Hindi with spiritual context.
      */
     suspend fun translateToAll(text: String): Map<String, String> = withContext(Dispatchers.IO) {
         try {
@@ -52,24 +49,26 @@ object AIService {
             val response = generativeModel.generateContent(prompt)
             val responseText = response.text ?: ""
             
+            val gu = extractValue(responseText, "gu")
+            val hi = extractValue(responseText, "hi")
+            
             return@withContext mapOf(
                 "en" to text,
-                "gu" to (extractValue(responseText, "gu") ?: text),
-                "hi" to (extractValue(responseText, "hi") ?: text)
+                "gu" to (gu ?: text),
+                "hi" to (hi ?: text)
             )
         } catch (e: Exception) {
-            Log.e("AIService", "Translation Failed: ${e.message}")
-            return@withContext mapOf("en" to text, "gu" to "જી: $text", "hi" to "હિ: $text")
+            Log.e("AIService", "Translation Failed: ${e.message}. Possible API key or Quota issue.")
+            // Removing the "જી: " prefixes to avoid confusing output
+            return@withContext mapOf("en" to text, "gu" to text, "hi" to text)
         }
     }
 
     /**
      * 3. Behavioral Analysis (AI Security)
-     * Analyzes login attempts to detect potential brute-force or bot attacks.
      */
     suspend fun analyzeLoginSafety(username: String, attemptCount: Int): SecurityReport = withContext(Dispatchers.IO) {
         try {
-            // Immediate block for extreme cases without calling AI to save quota
             if (attemptCount > 10) return@withContext SecurityReport(true, "Too many attempts detected.")
 
             val prompt = "Security analysis: User '$username' is attempting to log in. This is attempt #$attemptCount. Is this suspicious behavior? Answer 'YES' or 'NO' followed by a short reason."
@@ -86,8 +85,10 @@ object AIService {
     }
 
     private fun extractValue(json: String, key: String): String? {
+        // More robust extraction in case Gemini returns markdown or extra text
+        val cleanJson = json.replace("```json", "").replace("```", "").trim()
         val regex = "\"$key\"\\s*:\\s*\"([^\"]+)\"".toRegex()
-        return regex.find(json)?.groupValues?.get(1)
+        return regex.find(cleanJson)?.groupValues?.get(1)
     }
 }
 

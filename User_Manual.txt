@@ -1,0 +1,31 @@
+Gokudiyugam App - User Manual
+===============================
+
+1. Introduction:
+   This app is designed for the BAPS Mandal (Badalpur) to manage spiritual activities, media, and schedules. It provides a platform for devotees to stay connected with daily darshan and mandal updates.
+
+2. Getting Started:
+   - Login/Sign Up: Create an account using your email. Verify your email to access full features.
+   - Profile: Set up your name, mandal details, and contact information.
+   - Language: Choose your preferred language (English, Gujarati, or Hindi) from the settings or splash screen.
+
+3. Main Features:
+   - Home Screen: View the dynamic banner slider for featured announcements and events.
+   - Daily Darshan: View high-quality morning darshan photos from the mandal.
+   - Kirtan: Listen to a library of devotional songs with an integrated media player.
+   - Sabha Time Table: Stay updated with weekly sabha timings, locations, and special guest speakers.
+   - Functions & News: Browse upcoming festivals and read the latest "Satsang News" from Badalpur Mandal.
+
+4. Admin Features (For Authorized Roles):
+   - Admin Panel: A secure area for managing the application.
+   - User Accounts: Monitor user activity, including "Online" status, last seen timestamps, and login device information.
+   - Role Management: Update user roles (Host, Sub-Host, Normal) and assign specific screen permissions.
+   - Password Requests: Review and manage user requests for password changes.
+   - Home Slider: Upload and update images for the main screen banner dynamically.
+   - Help & Feedback: View and respond to feedback submitted by users.
+   - Auto-Translate: Use the AI-powered "Translate" button to automatically generate content in Gujarati and Hindi.
+
+5. Security:
+   - Biometric Security: Enable Fingerprint or Face ID for faster and more secure access.
+   - AI Content Filtering: The app uses Google Gemini AI to ensure all posted content is safe and appropriate.
+   - Data Sync: User registration and role changes are automatically synced to a central administrative Google Sheet for record-keeping.

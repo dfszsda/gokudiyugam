@@ -18,7 +18,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.5.7"
+        versionName = "1.9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -84,6 +84,8 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    //noinspection GradleDependency
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -98,17 +100,19 @@ dependencies {
     implementation(libs.espresso.core)
 
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.database)
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-storage")
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+    implementation(libs.firebase.config)
 
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.androidx.compose.remote.creation.core)
+    implementation(libs.androidx.compose.foundation)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -130,9 +134,9 @@ dependencies {
     implementation(libs.androidx.biometric)
     
     // Media3 for Background Audio
-    implementation("androidx.media3:media3-exoplayer:1.9.2")
-    implementation("androidx.media3:media3-ui:1.9.2")
-    implementation("androidx.media3:media3-session:1.9.2")
+    implementation("androidx.media3:media3-exoplayer:1.9.3")
+    implementation("androidx.media3:media3-ui:1.9.3")
+    implementation("androidx.media3:media3-session:1.9.3")
     
     // AI Integration: Google Generative AI SDK
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
@@ -145,8 +149,11 @@ dependencies {
     implementation(libs.google.http.client.android)
     implementation(libs.google.http.client.gson)
 
-    implementation("io.grpc:grpc-okhttp:1.79.0")
-    implementation("io.grpc:grpc-android:1.79.0")
-    implementation("io.grpc:grpc-stub:1.79.0")
-    implementation("io.grpc:grpc-protobuf-lite:1.79.0")
+    implementation("io.grpc:grpc-okhttp:1.80.0")
+    implementation("io.grpc:grpc-android:1.80.0")
+    implementation("io.grpc:grpc-stub:1.80.0")
+    implementation("io.grpc:grpc-protobuf-lite:1.80.0")
+
+    // YouTube Player Library
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")
 }

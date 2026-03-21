@@ -23,6 +23,8 @@
 
     <!-- Login/Signup -->
     <string name="username">વપરાશકર્તા નામ</string>
+    <string name="email">ઈમેલ સરનામું</string>
+    <string name="username_or_email">વપરાશકર્તા નામ અથવા ઈમેલ</string>
     <string name="password">પાસવર્ડ</string>
     <string name="confirm_password">પાસવર્ડની પુષ્ટિ કરો</string>
     <string name="sign_in">સાઇન ઇન કરો</string>
@@ -39,14 +41,28 @@
     <string name="quick_create">ઝડપી બનાવો</string>
     <string name="back_to_selection">પસંદગી પર પાછા જાઓ</string>
     <string name="back_to_login">લોગિન પર પાછા જાઓ</string>
+    <string name="sign_in_with_google">Google સાથે સાઇન ઇન કરો</string>
     <string name="error_credentials">કૃપા કરીને બંને ઓળખપત્રો દાખલ કરો</string>
     <string name="error_not_found">એકાઉન્ટ \'%1$s\' મળ્યું નથી</string>
     <string name="error_exists">એકાઉન્ટ \'%1$s\' પહેલેથી જ અસ્તિત્વમાં છે</string>
+    <string name="error_email_exists">ઈમેલ પહેલેથી જ નોંધાયેલ છે</string>
     <string name="error_password_match">પાસવર્ડ મેળ ખાતા નથી</string>
     <string name="error_invalid_password">અમાન્ય પાસવર્ડ</string>
     <string name="error_role_mismatch">આ એકાઉન્ટ %1$s તરીકે રજીસ્ટર થયેલ છે</string>
     <string name="error_enter_username">કૃપા કરીને વપરાશકર્તા નામ દાખલ કરો</string>
+    <string name="error_enter_email">કૃપા કરીને માન્ય ઈમેલ દાખલ કરો</string>
     <string name="error_check_inputs">તમારા ઇનપુટ્સ તપાસો</string>
+    <string name="error_google_sign_in">Google સાઇન-ઇન નિષ્ફળ રહ્યું</string>
+
+    <!-- Verification -->
+    <string name="verify_email">ઈમેલ વેરિફાય કરો</string>
+    <string name="verification_code">વેરિફિકેશન કોડ</string>
+    <string name="otp_sent_to">OTP %1$s પર મોકલવામાં આવ્યો છે</string>
+    <string name="enter_otp">6-અંકનો OTP દાખલ કરો</string>
+    <string name="verify">વેરિફાય કરો</string>
+    <string name="resend_otp">OTP ફરીથી મોકલો</string>
+    <string name="error_invalid_otp">અમાન્ય OTP. કૃપા કરીને ફરી પ્રયાસ કરો.</string>
+    <string name="error_expired_otp">OTP ની સમયસીમા સમાપ્ત થઈ ગઈ છે. કૃપા કરીને ફરીથી મોકલો.</string>
 
     <!-- Home -->
     <string name="baps_mandal">BAPS શ્રી સ્વામિનારાયણ મંદિર</string>
@@ -88,7 +104,7 @@
     <string name="update_password_desc">તમારો એકાઉન્ટ પાસવર્ડ અપડેટ કરો</string>
     <string name="language">ભાષા</string>
     <string name="app_language">એપ્લિકેશન ભાષા</string>
-    <string name="version">આવૃત્તિ 1.5.62</string>
+    <string name="version">આવૃત્તિ 1.9.1</string>
     <string name="choose_bg_color">પૃષ્ઠભૂમિ રંગ પસંદ કરો</string>
     <string name="old_password">જૂનો પાસવર્ડ</string>
     <string name="new_password">નવો પાસવર્ડ</string>
@@ -100,7 +116,7 @@
     <string name="error_password_too_short">પાસવર્ડ ખૂબ ટૂંકો છે</string>
     <string name="color_light_red">આછો લાલ</string>
     <string name="color_light_blue">આછો વાદળી</string>
-    <string name="color_light_green">આછો લીલો</string>
+    <string name="color_light_green">આછો લીરો</string>
     <string name="color_light_yellow">આછો પીળો</string>
     <string name="color_light_purple">આછો જાંબલી</string>
 
@@ -129,9 +145,9 @@
     <string name="sabha_schedule">સભા સમયપત્રક</string>
     <string name="sabha_header_text">સાપ્તાહિક સત્સંગ સભાઓ દ્વારા સંસ્કારોનું સિંચન.</string>
     <string name="sabha_sanyukt">સંયુક્ત સભા</string>
-    <string name="sabha_sanyukt_time">રવિવાર, સાંજે 8:30</string>
+    <string name="sabha_sanyukt_time">રવિવાર, સાંજે 5:30</string>
     <string name="sabha_yuva">યુવા સભા</string>
-    <string name="sabha_yuva_time">શનિવાર, સાંજે 8:30</string>
+    <string name="sabha_yuva_time">શનિવાર, સાંજે 7:00</string>
     <string name="sabha_yuvati">યુવતી સભા</string>
     <string name="sabha_yuvati_time">શનિવાર, સાંજે 7:00</string>
     <string name="sabha_bal">બાલ સભા</string>
@@ -171,6 +187,14 @@
     <string name="verify_translations">અનુવાદો ચકાસો</string>
     <string name="confirm_and_upload">પુષ્ટિ કરો અને અપલોડ કરો</string>
 
+    <!-- Satsang News -->
+    <string name="add_news">સમાચાર ઉમેરો</string>
+    <string name="news_title">સમાચારનું શીર્ષક</string>
+    <string name="news_content">સમાચારની સામગ્રી</string>
+    <string name="post_news">સમાચાર પોસ્ટ કરો</string>
+    <string name="daily_satsang_updates">દૈનિક સત્સંગ અપડેટ્સ</string>
+    <string name="no_news_available">હાલમાં કોઈ સમાચાર ઉપલબ્ધ નથી.</string>
+
     <!-- Puja Darshan -->
     <string name="edit_link">લિંક એડિટ કરો</string>
     <string name="save_link">લિંક સેવ કરો</string>
@@ -205,4 +229,21 @@
     <string name="verifying_ai">AI તમારી ઍક્સેસની ચકાસણી કરી રહ્યું છે...</string>
     <string name="ai_verified">AI ચકાસાયેલ</string>
     <string name="ai_denied">AI દ્વારા ઍક્સેસ નકારવામાં આવી</string>
+    <string name="send_link">લિંક મોકલો</string>
+
+    <!-- Media Library -->
+    <string name="media_library">મીડિયા લાઇબ્રેરી</string>
+    <string name="add_media">મીડિયા ઉમેરો</string>
+    <string name="media_type">મીડિયા પ્રકાર</string>
+    <string name="post_to_screen">સ્ક્રીન પર પોસ્ટ કરો</string>
+    <string name="delete_media">મીડિયા ડીલીટ કરો</string>
+    <string name="delete_media_confirm">શું તમે ખરેખર \'%1$s\' ડીલીટ કરવા માંગો છો? આ પ્રક્રિયા પાછી ખેંચી શકાશે નહીં.</string>
+    <string name="upload">અપલોડ</string>
+    <string name="choose_file">ફાઇલ પસંદ કરો</string>
+    <string name="file_selected">ફાઇલ પસંદ કરેલ છે</string>
+    <string name="youtube_link">યુટ્યુબ લિંક</string>
+    <string name="post_link">લિંક પોસ્ટ કરો</string>
+    <string name="select_where_to_show">આ આઇટમ તમે ક્યાં બતાવવા માંગો છો તે પસંદ કરો:</string>
+    <string name="post_now">હમણાં પોસ્ટ કરો</string>
+
 </resources>

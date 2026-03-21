@@ -6,13 +6,17 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
@@ -23,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.gokudiyugam.model.MediaItem
@@ -67,36 +72,76 @@ fun MediaDataScreen(
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            // Filter Chips
-            ScrollableTabRow(
-                selectedTabIndex = types.indexOf(selectedType),
-                edgePadding = 16.dp,
-                divider = {}
-            ) {
-                types.forEach { type ->
-                    Tab(
-                        selected = selectedType == type,
-                        onClick = { selectedType = type },
-                        text = { Text(type.replaceFirstChar { it.uppercase() }.replace("_", " ")) }
-                    )
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column {
+                // Filter Chips
+                ScrollableTabRow(
+                    selectedTabIndex = types.indexOf(selectedType),
+                    edgePadding = 16.dp,
+                    divider = {}
+                ) {
+                    types.forEach { type ->
+                        Tab(
+                            selected = selectedType == type,
+                            onClick = { selectedType = type },
+                            text = { Text(type.replaceFirstChar { it.uppercase() }.replace("_", " ")) }
+                        )
+                    }
+                }
+
+                val filteredList = if (selectedType == "all") mediaList else mediaList.filter { it.type == selectedType }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredList) { item ->
+                        MediaCard(
+                            item = item,
+                            canManage = currentUserRole == UserRole.HOST || currentUserRole == UserRole.SUB_HOST,
+                            onRepostClick = { selectedItemForRepost = item },
+                            onDeleteClick = { itemToDelete = item }
+                        )
+                    }
                 }
             }
 
-            val filteredList = if (selectedType == "all") mediaList else mediaList.filter { it.type == selectedType }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            // Modern Upload Progress Overlay
+            AnimatedVisibility(
+                visible = viewModel.isUploading,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
             ) {
-                items(filteredList) { item ->
-                    MediaCard(
-                        item = item,
-                        canManage = currentUserRole == UserRole.HOST || currentUserRole == UserRole.SUB_HOST,
-                        onRepostClick = { selectedItemForRepost = item },
-                        onDeleteClick = { itemToDelete = item }
-                    )
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (viewModel.uploadProgress >= 1f) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50))
+                            } else {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(text = viewModel.uploadStatus, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        LinearProgressIndicator(
+                            progress = { viewModel.uploadProgress },
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                        )
+                    }
                 }
             }
         }
@@ -144,12 +189,6 @@ fun MediaDataScreen(
                 }
             )
         }
-        
-        if (viewModel.isUploading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
     }
 }
 
@@ -178,7 +217,6 @@ fun MediaCard(
                     modifier = Modifier.fillMaxWidth().height(200.dp)
                 )
             } else if (item.type == "youtube" || item.url.contains("youtube.com") || item.url.contains("youtu.be")) {
-                // Try to get YouTube thumbnail
                 val videoId = try {
                     if (item.url.contains("v=")) item.url.substringAfter("v=").substringBefore("&")
                     else item.url.substringAfterLast("/")

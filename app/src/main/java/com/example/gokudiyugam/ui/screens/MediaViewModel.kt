@@ -19,12 +19,14 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 class MediaViewModel : ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
+    private val db = FirebaseFirestore.getInstance("mediadata")
     private val rtdb = FirebaseDatabase.getInstance().getReference("mediadata")
     private val storage = FirebaseStorage.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
     var isUploading by mutableStateOf(false)
+    var uploadProgress by mutableStateOf(0f)
+    var uploadStatus by mutableStateOf("")
     val mediaList = mutableStateListOf<MediaItem>()
     
     // ૪. ડેટા ડિસ્પ્લે કરવો (બધા યુઝર્સ માટે)
@@ -49,6 +51,8 @@ class MediaViewModel : ViewModel() {
     fun uploadFile(uri: Uri, title: String, type: String) {
         val userId = auth.currentUser?.uid ?: "anonymous"
         isUploading = true
+        uploadProgress = 0f
+        uploadStatus = "Starting upload..."
 
         viewModelScope.launch {
             try {
@@ -56,7 +60,15 @@ class MediaViewModel : ViewModel() {
                 val storagePath = "uploads/$type/$fileName"
                 val storageRef = storage.reference.child(storagePath)
 
-                storageRef.putFile(uri).await()
+                val uploadTask = storageRef.putFile(uri)
+                
+                uploadTask.addOnProgressListener { taskSnapshot ->
+                    val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toFloat()
+                    uploadProgress = progress / 100f
+                    uploadStatus = "Uploading: ${progress.toInt()}%"
+                }.await()
+
+                uploadStatus = "Saving details..."
                 val downloadUrl = storageRef.downloadUrl.await().toString()
 
                 val mediaItem = MediaItem(
@@ -71,9 +83,14 @@ class MediaViewModel : ViewModel() {
                 db.collection("mediadata").document(mediaItem.id).set(mediaItem).await()
                 rtdb.child(mediaItem.id).setValue(mediaItem).await()
 
+                uploadStatus = "Upload complete!"
+                kotlinx.coroutines.delay(2000)
                 isUploading = false
+                uploadProgress = 0f
             } catch (e: Exception) {
                 Log.e("MediaViewModel", "Upload Failed: ${e.message}")
+                uploadStatus = "Upload failed: ${e.message}"
+                kotlinx.coroutines.delay(3000)
                 isUploading = false
             }
         }

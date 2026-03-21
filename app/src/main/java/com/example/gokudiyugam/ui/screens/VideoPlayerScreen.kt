@@ -1,236 +1,447 @@
 package com.example.gokudiyugam.ui.screens
 
 import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.view.ViewGroup
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.widget.FrameLayout
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.annotation.OptIn
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.gokudiyugam.ui.theme.GokudiyugamTheme
+import androidx.compose.ui.window.Dialog
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.Tracks
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import com.example.gokudiyugam.PreferenceManager
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("SourceLockedOrientationActivity")
+@OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayerScreen(
     title: String,
     url: String,
     onBack: () -> Unit
 ) {
-    var isFullScreen by remember { mutableStateOf(false) }
-    val processedUrl = remember(url) { processVideoUrl(url) }
+    val context = LocalContext.current
+    val activity = context as ComponentActivity
+    val window = activity.window
+    val lifecycleOwner = LocalLifecycleOwner.current
     
-    // AI feature state: Focus Mode (dims UI, maximizes focus on video)
-    var aiFocusMode by remember { mutableStateOf(false) }
+    // Determine which player to use based on URL
+    val isYoutubeUrl = url.contains("youtube.com", ignoreCase = true) || 
+                       url.contains("youtu.be", ignoreCase = true)
+    
+    val isDriveUrl = url.contains("drive.google.com")
+    
+    // Always use YouTube player for YouTube links
+    val useYoutubePlayer = isYoutubeUrl
 
-    BackHandler {
-        if (isFullScreen) {
-            isFullScreen = false
-        } else {
-            onBack()
+    // Convert Google Drive link to direct link for ExoPlayer
+    val finalUrl = remember(url) { convertDriveUrlToDirectLink(url) }
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            val mediaItem = MediaItem.fromUri(finalUrl)
+            setMediaItem(mediaItem)
+            prepare()
+            playWhenReady = true
         }
     }
 
-    Scaffold(
-        topBar = {
-            if (!isFullScreen) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            if (aiFocusMode) {
-                                Text(
-                                    "AI Focus Mode Active", 
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+    var isPlaying by remember { mutableStateOf(true) }
+    var showControls by remember { mutableStateOf(true) }
+    var youtubePlayerRef by remember { mutableStateOf<YouTubePlayer?>(null) }
+    var youtubeCurrentSecond by remember { mutableFloatStateOf(0f) }
+    var isFullScreen by remember { mutableStateOf(true) }
+    
+    // Quality States
+    var showQualityDialog by remember { mutableStateOf(false) }
+    var availableQualities by remember { mutableStateOf(listOf("Auto")) }
+    var selectedQuality by remember { mutableStateOf("Auto") }
+
+    // ExoPlayer Track Listener
+    LaunchedEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onTracksChanged(tracks: Tracks) {
+                val qualities = mutableListOf("Auto")
+                for (group in tracks.groups) {
+                    if (group.type == C.TRACK_TYPE_VIDEO) {
+                        for (i in 0 until group.length) {
+                            val format = group.getTrackFormat(i)
+                            if (format.height != androidx.media3.common.Format.NO_VALUE) {
+                                qualities.add("${format.height}p")
                             }
                         }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { aiFocusMode = !aiFocusMode }) {
-                            Icon(
-                                Icons.Default.AutoAwesome, 
-                                contentDescription = "AI Focus Mode",
-                                tint = if (aiFocusMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = if (aiFocusMode) Color.Black else MaterialTheme.colorScheme.surface,
-                        titleContentColor = if (aiFocusMode) Color.White else MaterialTheme.colorScheme.onSurface,
-                        navigationIconContentColor = if (aiFocusMode) Color.White else MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            }
-        },
-        containerColor = if (aiFocusMode) Color.Black else MaterialTheme.colorScheme.background
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(if (isFullScreen) PaddingValues(0.dp) else padding)
-                .background(if (aiFocusMode) Color.Black else Color.Transparent)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(Color.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                VideoWebView(
-                    url = processedUrl,
-                    onFullScreenToggle = { fullScreen ->
-                        isFullScreen = fullScreen
                     }
-                )
+                }
+                availableQualities = qualities.distinct().sortedByDescending { 
+                    it.replace("p", "").toIntOrNull() ?: 0 
+                }
             }
-            
-            if (!isFullScreen && !aiFocusMode) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.AutoAwesome, 
-                                contentDescription = null, 
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "AI Insight", 
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "This video is identified as a spiritual event. Use Focus Mode (top right) to minimize distractions during your viewing experience.",
-                            style = MaterialTheme.typography.bodySmall
+        }
+        exoPlayer.addListener(listener)
+    }
+
+    // Fullscreen UI Control
+    LaunchedEffect(isFullScreen) {
+        window.let {
+            val controller = WindowInsetsControllerCompat(it, it.decorView)
+            if (isFullScreen) {
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
+    // Cleanup orientation on leave
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    // Auto-hide controls
+    LaunchedEffect(showControls, isPlaying) {
+        if (showControls && isPlaying) {
+            delay(3000)
+            showControls = false
+        }
+    }
+
+    BackHandler { 
+        if (!isFullScreen) {
+            onBack()
+        } else {
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            isFullScreen = false
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        if (useYoutubePlayer) {
+            AndroidView(
+                factory = { ctx ->
+                    YouTubePlayerView(ctx).apply {
+                        lifecycleOwner.lifecycle.addObserver(this)
+                        
+                        addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
+                            override fun onReady(youTubePlayer: YouTubePlayer) {
+                                youtubePlayerRef = youTubePlayer
+                                val videoId = extractYoutubeVideoId(url) ?: ""
+                                youTubePlayer.loadVideo(videoId, 0f)
+                                availableQualities = listOf("Auto", "1080p", "720p", "480p", "360p", "240p", "144p")
+                            }
+                            
+                            override fun onStateChange(youTubePlayer: YouTubePlayer, state: PlayerConstants.PlayerState) {
+                                isPlaying = state == PlayerConstants.PlayerState.PLAYING
+                            }
+                            
+                            override fun onCurrentSecond(youTubePlayer: YouTubePlayer, second: Float) {
+                                youtubeCurrentSecond = second
+                            }
+                        })
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            AndroidView(
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        player = exoPlayer
+                        useController = false
+                        layoutParams = FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
                         )
                     }
-                }
-            }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
         }
-    }
-}
 
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-fun VideoWebView(
-    url: String,
-    onFullScreenToggle: (Boolean) -> Unit
-) {
-    AndroidView(
-        factory = { context ->
-            WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
+        // Touch Layer
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    showControls = !showControls
+                }
+        )
+
+        // Overlay Controls
+        AnimatedVisibility(
+            visible = showControls,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f))) {
+                
+                // Back Button
+                IconButton(
+                    onClick = {
+                        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                        onBack()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+
+                // Settings/Quality Button
+                IconButton(
+                    onClick = { showQualityDialog = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = "Quality Settings", tint = Color.White)
+                }
+
+                // Orientation Toggle
+                IconButton(
+                    onClick = {
+                        val currentOrientation = activity.requestedOrientation
+                        if (currentOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        } else {
+                            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(Icons.Default.ScreenRotation, contentDescription = "Toggle Orientation", tint = Color.White)
+                }
+
+                // Title
+                Text(
+                    text = title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 24.dp)
+                        .background(Color.Black.copy(alpha = 0.4f), shape = CircleShape)
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    maxLines = 1
                 )
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        // CSS to hide YouTube branding elements
-                        val css = ".ytp-chrome-top, .ytp-show-cards-title, .ytp-watermark, .ytp-youtube-button, .ytp-pause-overlay { display: none !important; }"
-                        val js = "var style = document.createElement('style'); style.innerHTML = '$css'; document.head.appendChild(style);"
-                        view?.evaluateJavascript(js, null)
-                    }
-                }
-                webChromeClient = object : WebChromeClient() {
-                    override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
-                        super.onShowCustomView(view, callback)
-                        onFullScreenToggle(true)
+
+                // Center Controls
+                Row(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalArrangement = Arrangement.spacedBy(48.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Backward 5s
+                    IconButton(
+                        onClick = {
+                            if (useYoutubePlayer) {
+                                youtubePlayerRef?.seekTo(youtubeCurrentSecond - 5f)
+                            } else {
+                                val newPos = (exoPlayer.currentPosition - 5000).coerceAtLeast(0)
+                                exoPlayer.seekTo(newPos)
+                            }
+                        },
+                        modifier = Modifier.size(56.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.Replay5, contentDescription = "Back 5s", tint = Color.White, modifier = Modifier.size(32.dp))
                     }
 
-                    override fun onHideCustomView() {
-                        super.onHideCustomView()
-                        onFullScreenToggle(false)
+                    // Play/Pause
+                    IconButton(
+                        onClick = {
+                            if (useYoutubePlayer) {
+                                if (isPlaying) youtubePlayerRef?.pause() else youtubePlayerRef?.play()
+                            } else {
+                                if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                isPlaying = exoPlayer.isPlaying
+                            }
+                        },
+                        modifier = Modifier.size(80.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = "Play/Pause",
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+
+                    // Forward 10s
+                    IconButton(
+                        onClick = {
+                            if (useYoutubePlayer) {
+                                youtubePlayerRef?.seekTo(youtubeCurrentSecond + 10f)
+                            } else {
+                                val newPos = (exoPlayer.currentPosition + 10000).coerceAtMost(exoPlayer.duration)
+                                exoPlayer.seekTo(newPos)
+                            }
+                        },
+                        modifier = Modifier.size(56.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.Forward10, contentDescription = "Forward 10s", tint = Color.White, modifier = Modifier.size(32.dp))
                     }
                 }
                 
-                settings.apply {
-                    javaScriptEnabled = true
-                    loadWithOverviewMode = true
-                    useWideViewPort = true
-                    domStorageEnabled = true
-                    mediaPlaybackRequiresUserGesture = false
-                    // desktop user agent to avoid "Open App" banners
-                    userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                // Drive Warning
+                if (isDriveUrl) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                            .background(Color.Red.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Block, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Download Disabled", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
-                
-                loadUrl(url)
-            }
-        },
-        modifier = Modifier.fillMaxSize(),
-        update = { webView ->
-            if (webView.url != url && !url.isNullOrEmpty()) {
-                webView.loadUrl(url)
             }
         }
-    )
+    }
+
+    // Quality Selection Dialog
+    if (showQualityDialog) {
+        Dialog(onDismissRequest = { showQualityDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp
+            ) {
+                Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                    Text(
+                        text = "Select Video Quality",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    LazyColumn {
+                        items(availableQualities) { quality ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = (quality == selectedQuality),
+                                        onClick = {
+                                            selectedQuality = quality
+                                            if (useYoutubePlayer) {
+                                                // Note: Mobile YouTube iframe API has limited support for manual quality selection
+                                            } else {
+                                                val builder = exoPlayer.trackSelectionParameters.buildUpon()
+                                                if (quality == "Auto") {
+                                                    builder.clearVideoSizeConstraints()
+                                                } else {
+                                                    val height = quality.replace("p", "").toIntOrNull() ?: Int.MAX_VALUE
+                                                    builder.setMaxVideoSize(Int.MAX_VALUE, height)
+                                                }
+                                                exoPlayer.trackSelectionParameters = builder.build()
+                                            }
+                                            showQualityDialog = false
+                                        }
+                                    )
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = (quality == selectedQuality),
+                                    onClick = null
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(text = quality, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
-private fun processVideoUrl(url: String): String {
-    val videoId = extractYoutubeVideoId(url)
-    return if (videoId != null) {
-        "https://www.youtube.com/embed/$videoId?autoplay=1&modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&cc_load_policy=0"
-    } else {
-        url
+private fun convertDriveUrlToDirectLink(url: String): String {
+    return when {
+        url.contains("drive.google.com") -> {
+            val fileId = extractDriveFileId(url)
+            if (fileId != null) "https://drive.google.com/uc?id=$fileId&export=download" else url
+        }
+        else -> url
     }
+}
+
+private fun extractDriveFileId(url: String): String? {
+    val patterns = listOf("/d/([^/]+)", "id=([^&]+)")
+    for (p in patterns) {
+        val matcher = java.util.regex.Pattern.compile(p).matcher(url)
+        if (matcher.find()) return matcher.group(1)
+    }
+    return null
 }
 
 private fun extractYoutubeVideoId(url: String): String? {
-    return try {
-        val patterns = listOf(
-            "v=([^&]+)",
-            "youtu.be/([^?]+)",
-            "embed/([^?]+)",
-            "live/([^?]+)",
-            "shorts/([^?]+)"
-        )
-        for (p in patterns) {
-            val matcher = java.util.regex.Pattern.compile(p).matcher(url)
-            if (matcher.find()) return matcher.group(1)
-        }
-        null
-    } catch (e: Exception) { null }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun VideoPlayerPreview() {
-    GokudiyugamTheme {
-        VideoPlayerScreen(
-            title = "Sample Spiritual Video",
-            url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            onBack = {}
-        )
+    val patterns = listOf(
+        "v=([^&]+)", 
+        "youtu.be/([^?]+)", 
+        "embed/([^?]+)", 
+        "shorts/([^?]+)",
+        "watch\\?v=([^&]+)"
+    )
+    for (p in patterns) {
+        val matcher = java.util.regex.Pattern.compile(p).matcher(url)
+        if (matcher.find()) return matcher.group(1)
     }
+    return null
 }

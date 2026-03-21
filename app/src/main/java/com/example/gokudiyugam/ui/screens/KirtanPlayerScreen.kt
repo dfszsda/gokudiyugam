@@ -31,31 +31,31 @@ fun KirtanPlayerScreen(
 ) {
     val context = LocalContext.current
     
-    // ViewModel પહેલેથી જ રોટેશન દરમિયાન ડેટા જાળવી રાખે છે.
-    // આપણે માત્ર એ જોવાનું છે કે LaunchedEffect દર વખતે ફરી રન ન થાય.
+    // Remote data from Firestore
+    val remoteKirtans = kirtanViewModel.sharedKirtans
     
-    val kirtans = remember(category) {
-        when (category) {
+    // Combined list (Local + Remote)
+    val kirtans = remember(category, remoteKirtans.size) {
+        val local = when (category) {
             context.getString(R.string.kirtan_category_arati) -> KirtanRepository.getAratiKirtans(context)
             context.getString(R.string.kirtan_category_dhun) -> KirtanRepository.getDhunKirtans(context)
             context.getString(R.string.kirtan_category_prathana) -> KirtanRepository.getPrathanaKirtans(context)
             context.getString(R.string.kirtan_category_others) -> KirtanRepository.getOthersKirtans(context)
             context.getString(R.string.kirtan_category_favorite) -> KirtanRepository.getFavoriteKirtans(context)
-            "Shared Kirtans" -> kirtanViewModel.sharedKirtans
             else -> emptyList()
         }
+        // Combine local kirtans with remote ones fetched for this category
+        (local + remoteKirtans).distinctBy { it.id }
     }
 
-    LaunchedEffect(Unit) {
-        // આ માત્ર પહેલીવાર રન થશે, રોટેશન વખતે નહીં
+    LaunchedEffect(category) {
         if (!kirtanViewModel.isControllerInitialized()) {
             kirtanViewModel.initController(context)
             context.startService(Intent(context, KirtanAudioService::class.java))
         }
         
-        if (category == "Shared Kirtans" && kirtanViewModel.sharedKirtans.isEmpty()) {
-            kirtanViewModel.fetchSharedKirtans()
-        }
+        // Fetch real-time updates for the selected category from Firestore
+        kirtanViewModel.fetchKirtansByCategory(category)
     }
 
     Scaffold(

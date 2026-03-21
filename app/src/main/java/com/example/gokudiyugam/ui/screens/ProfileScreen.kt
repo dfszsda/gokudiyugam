@@ -34,7 +34,7 @@ fun ProfileScreen(
     onNavigateToChangePassword: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
+    val db = FirebaseFirestore.getInstance("mediadata")
     val currentUser = auth.currentUser
     
     var firstName by remember { mutableStateOf("") }

@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,15 +25,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import com.example.gokudiyugam.PreferenceManager
+import com.example.gokudiyugam.R
 import com.example.gokudiyugam.model.User
+import com.example.gokudiyugam.network.GoogleSheetsUploader
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -40,15 +48,18 @@ import java.util.*
 fun SettingsScreen(
     preferenceManager: PreferenceManager,
     onBack: () -> Unit,
-    onRestartApp: () -> Unit
+    onRestartApp: () -> Unit,
+    onNavigateToHelpFeedback: () -> Unit
 ) {
     val context = LocalContext.current
+    val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
     var currentLanguage by remember { mutableStateOf(preferenceManager.getLanguage()) }
     var isDarkMode by remember { mutableStateOf(preferenceManager.isDarkMode()) }
     var selectedColor by remember { mutableIntStateOf(preferenceManager.getBackgroundColor()) }
+    var defaultPlayer by remember { mutableStateOf(preferenceManager.getDefaultPlayer()) }
     
     val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
+    val db = remember { FirebaseFirestore.getInstance("mediadata") }
     val currentUser = auth.currentUser
     
     // State for Profile Fields
@@ -74,12 +85,18 @@ fun SettingsScreen(
     var resetEmail by remember { mutableStateOf("") }
     var isRequestingPassword by remember { mutableStateOf(false) }
 
-    // Fetch user profile from Firestore if it exists
+    // Color Picker Dialog
+    var showColorPicker by remember { mutableStateOf(false) }
+    var hexColorInput by remember { mutableStateOf(String.format("#%06X", (0xFFFFFF and selectedColor))) }
+
+    // Player Selection Dialog
+    var showPlayerDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(currentUser?.uid) {
         val uid = currentUser?.uid
         if (uid != null) {
-            db.collection("profile").document(uid).get().addOnSuccessListener { doc ->
-                if (doc.exists()) {
+            db.collection("profile").document(uid).addSnapshotListener { doc, _ ->
+                if (doc != null && doc.exists()) {
                     val user = doc.toObject(User::class.java)
                     firstName = user?.firstName ?: ""
                     middleName = user?.middleName ?: ""
@@ -87,12 +104,9 @@ fun SettingsScreen(
                     mobileNumber = user?.mobileNumber ?: ""
                     dob = user?.dob ?: ""
                     gender = user?.gender ?: ""
-                    // Always prefer auth email or keep it synced
                     email = user?.email?.ifEmpty { currentUser.email ?: "" } ?: currentUser.email ?: ""
                     profilePhotoUrl = user?.profilePhotoUrl ?: ""
                 }
-                isLoadingProfile = false
-            }.addOnFailureListener {
                 isLoadingProfile = false
             }
         } else {
@@ -106,7 +120,6 @@ fun SettingsScreen(
         uri?.let { profilePhotoUrl = it.toString() }
     }
 
-    // Date Picker Dialog
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -132,7 +145,6 @@ fun SettingsScreen(
         }
     }
 
-    // Password Reset Request Logic
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
@@ -209,10 +221,104 @@ fun SettingsScreen(
         )
     }
 
+    if (showColorPicker) {
+        AlertDialog(
+            onDismissRequest = { showColorPicker = false },
+            title = { Text("Custom Background Color") },
+            text = {
+                Column {
+                    Text("Enter Hex Color Code (e.g., #FFFFFF):", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = hexColorInput,
+                        onValueChange = { hexColorInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("#FFFFFF") },
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Preset Colors:", style = MaterialTheme.typography.labelLarge)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val presets = listOf(Color.White, Color(0xFFFFEBEE), Color(0xFFE3F2FD), Color(0xFFF1F8E9), Color(0xFFFFF3E0), Color(0xFFF3E5F5))
+                        presets.forEach { color ->
+                            Box(
+                                modifier = Modifier
+                                    .size(35.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(1.dp, Color.Gray, CircleShape)
+                                    .clickable {
+                                        hexColorInput = String.format("#%06X", (0xFFFFFF and color.toArgb()))
+                                    }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    try {
+                        val color = Color(android.graphics.Color.parseColor(hexColorInput))
+                        selectedColor = color.toArgb()
+                        preferenceManager.saveBackgroundColor(selectedColor)
+                        showColorPicker = false
+                        onRestartApp()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Invalid Color Code", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Text("Apply")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showColorPicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showPlayerDialog) {
+        AlertDialog(
+            onDismissRequest = { showPlayerDialog = false },
+            title = { Text("Select Default Video Player") },
+            text = {
+                Column {
+                    listOf("ExoPlayer", "YouTube Player", "Auto (Hybrid)").forEach { player ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    defaultPlayer = player
+                                    preferenceManager.saveDefaultPlayer(player)
+                                    showPlayerDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        ) {
+                            RadioButton(selected = defaultPlayer == player, onClick = null)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(player)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showPlayerDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.settings), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -233,7 +339,6 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Profile Section
             Text("Profile Information", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -247,7 +352,6 @@ fun SettingsScreen(
                         CircularProgressIndicator()
                     }
                 } else if (!isEditing) {
-                    // Display Mode (Summary)
                     Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
@@ -313,7 +417,6 @@ fun SettingsScreen(
                         }
                     }
                 } else {
-                    // Edit Mode
                     Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
@@ -343,7 +446,6 @@ fun SettingsScreen(
                         ProfileTextField(value = middleName, onValueChange = { middleName = it }, label = "Middle Name", icon = Icons.Default.Person)
                         ProfileTextField(value = lastName, onValueChange = { lastName = it }, label = "Last Name", icon = Icons.Default.Person)
                         
-                        // Email Field (Read-only as per system automatic display)
                         OutlinedTextField(
                             value = email,
                             onValueChange = { },
@@ -358,7 +460,6 @@ fun SettingsScreen(
 
                         ProfileTextField(value = mobileNumber, onValueChange = { mobileNumber = it }, label = "Mobile Number", icon = Icons.Default.Phone)
                         
-                        // Date of Birth with Calendar
                         OutlinedTextField(
                             value = dob,
                             onValueChange = { },
@@ -378,7 +479,6 @@ fun SettingsScreen(
                             )
                         )
                         
-                        // Gender Selection with Radio Buttons (Male, Female, Other)
                         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                             Text("Gender:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             Row(
@@ -430,6 +530,24 @@ fun SettingsScreen(
                                                 isUpdating = false
                                                 isEditing = false
                                                 Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                                                
+                                                lifecycleScope.launch {
+                                                    val currentUname = preferenceManager.getCurrentUsername()
+                                                    val role = currentUname?.let { preferenceManager.getUserRoleForAccount(it).name } ?: "NORMAL"
+                                                    
+                                                    // Point 2 Fix: Removed password parameter as per GoogleSheetsUploader update
+                                                    GoogleSheetsUploader.uploadUserData(
+                                                        firstName = firstName,
+                                                        middleName = middleName,
+                                                        lastName = lastName,
+                                                        role = role,
+                                                        gender = gender,
+                                                        email = email,
+                                                        mobileNumber = mobileNumber,
+                                                        dob = dob,
+                                                        uid = uid
+                                                    )
+                                                }
                                             }
                                             .addOnFailureListener { e ->
                                                 isUpdating = false
@@ -458,24 +576,31 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             
-            // App Settings
             Text("App Preferences", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
             SettingsItem(
-                title = "Language",
-                subtitle = if (currentLanguage == "gu") "Gujarati" else "English",
+                title = stringResource(R.string.language),
+                subtitle = when(currentLanguage) {
+                    "gu" -> "ગુજરાતી"
+                    "hi" -> "હિન્દી"
+                    else -> "English"
+                },
                 icon = Icons.Default.Language,
                 onClick = {
-                    val newLang = if (currentLanguage == "en") "gu" else "en"
-                    preferenceManager.saveLanguage(newLang)
-                    currentLanguage = newLang
+                    val nextLang = when(currentLanguage) {
+                        "en" -> "gu"
+                        "gu" -> "hi"
+                        else -> "en"
+                    }
+                    preferenceManager.saveLanguage(nextLang)
+                    currentLanguage = nextLang
                     onRestartApp()
                 }
             )
 
             SettingsItem(
-                title = "Dark Mode",
+                title = stringResource(R.string.dark_mode),
                 subtitle = if (isDarkMode) "On" else "Off",
                 icon = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
                 trailing = {
@@ -487,22 +612,49 @@ fun SettingsScreen(
                 }
             )
 
-            Text("Theme Color", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                listOf(Color.White, Color(0xFFFFEBEE), Color(0xFFE3F2FD), Color(0xFFF1F8E9)).forEach { color ->
+            SettingsItem(
+                title = stringResource(R.string.background_color),
+                subtitle = hexColorInput,
+                icon = Icons.Default.Palette,
+                onClick = { showColorPicker = true },
+                trailing = {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(30.dp)
                             .clip(CircleShape)
-                            .background(color)
-                            .clickable {
-                                selectedColor = color.toArgb()
-                                preferenceManager.saveBackgroundColor(selectedColor)
-                                onRestartApp()
-                            }
+                            .background(Color(selectedColor))
+                            .border(1.dp, Color.Gray, CircleShape)
+                            .clickable { showColorPicker = true }
                     )
                 }
-            }
+            )
+
+            SettingsItem(
+                title = "Video Player Type",
+                subtitle = defaultPlayer,
+                icon = Icons.Default.VideoLibrary,
+                onClick = { showPlayerDialog = true }
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text("Other", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            
+            SettingsItem(
+                title = "About App",
+                subtitle = "Version 1.9.0",
+                icon = Icons.Default.Info,
+                onClick = {
+                    Toast.makeText(context, "Gokudiyugam - Spiritual Journey", Toast.LENGTH_SHORT).show()
+                }
+            )
+            
+            SettingsItem(
+                title = "Help & Feedback",
+                subtitle = "Contact support for any issues",
+                icon = Icons.AutoMirrored.Filled.Help,
+                onClick = onNavigateToHelpFeedback
+            )
         }
     }
 }

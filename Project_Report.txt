@@ -1,0 +1,31 @@
+Gokudiyugam Application - Final Project Report
+============================================
+
+1. Project Overview:
+   Gokudiyugam is a dedicated spiritual management application for the BAPS Swaminarayan Mandal, Badalpur. It serves as a central hub for daily darshan, devotional media, and administrative coordination.
+
+2. Key Achievements:
+   - Modern UI: Built entirely with Jetpack Compose for a smooth, reactive user experience.
+   - AI-Powered: Integrated Google Gemini AI for real-time translation and content safety.
+   - Dynamic Content: Integrated with Google Drive API and Firebase to allow hosts to update data without app updates.
+   - Security: Implemented Biometric Authentication and a robust role-based permission system.
+   - External Sync: Developed a custom synchronization engine to mirror user data to Google Sheets for administrative record-keeping.
+
+3. Features Implemented:
+   - Multi-Language Support (English, Gujarati, Hindi).
+   - Admin Panel for user role management and granular permission control.
+   - Audio/Video Player for Kirtans and spiritual videos (Media3).
+   - Home Slider Management: Admins can dynamically update the main screen's featured content.
+   - User Activity Tracking: Monitors user status, device info, and last-seen data.
+   - Automated translation for Admin content using Gemini 1.5 Flash.
+
+4. Technology Stack:
+   - Frontend: Kotlin, Jetpack Compose, Material 3.
+   - Backend: Firebase Firestore (Multiple instances), Firebase Authentication.
+   - AI: Google Generative AI (Gemini).
+   - Storage: Google Cloud, Firebase Storage, Google Drive.
+   - External APIs: Google Apps Script (Sheets integration).
+   - Libraries: Media3, Coil, Gson, Coroutines.
+
+5. Conclusion:
+   The application successfully digitizes the mandal's operations, making it easier for devotees to stay connected and for administrators to manage content efficiently with high transparency and security.

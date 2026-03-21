@@ -26,9 +26,6 @@ class DriveHelper(private val driveService: Drive) {
 
     fun getDriveServiceDirect(): Drive = driveService
 
-    /**
-     * Creates a file in a specific folder. If folderId is null, it goes to the root.
-     */
     suspend fun createFile(name: String, mimeType: String, content: InputStream, folderId: String? = null): String? = withContext(Dispatchers.IO) {
         val metadata = File().apply {
             this.name = name
@@ -44,9 +41,6 @@ class DriveHelper(private val driveService: Drive) {
         googleFile.id
     }
 
-    /**
-     * Creates a folder with the given name.
-     */
     suspend fun createFolder(folderName: String): String? = withContext(Dispatchers.IO) {
         val metadata = File().apply {
             name = folderName
@@ -58,9 +52,6 @@ class DriveHelper(private val driveService: Drive) {
         folder.id
     }
 
-    /**
-     * Finds a folder by name.
-     */
     suspend fun findFolder(folderName: String): String? = withContext(Dispatchers.IO) {
         val query = "name = '$folderName' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
         val result: FileList = driveService.files().list()
@@ -71,20 +62,14 @@ class DriveHelper(private val driveService: Drive) {
         result.files?.firstOrNull()?.id
     }
 
-    /**
-     * Makes a file public (anyone with the link can view).
-     */
     suspend fun makeFilePublic(fileId: String) = withContext(Dispatchers.IO) {
         val permission = Permission().apply {
             type = "anyone"
             role = "reader"
         }
         driveService.permissions().create(fileId, permission).execute()
-    }!!
+    }
 
-    /**
-     * Makes a folder writable by anyone with the link (Editor mode).
-     */
     suspend fun makeFolderWritable(folderId: String) = withContext(Dispatchers.IO) {
         val permission = Permission().apply {
             type = "anyone"
@@ -93,9 +78,6 @@ class DriveHelper(private val driveService: Drive) {
         driveService.permissions().create(folderId, permission).execute()
     }
 
-    /**
-     * Gets the direct download link or web content link.
-     */
     suspend fun getFileLinks(fileId: String): Pair<String?, String?> = withContext(Dispatchers.IO) {
         val file: File = driveService.files().get(fileId)
             .setFields("webContentLink, webViewLink")
@@ -128,8 +110,9 @@ class DriveHelper(private val driveService: Drive) {
 
         fun getGoogleSignInClient(context: Context): GoogleSignInClient {
             val signInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken("728177722635-u2gatdgb305ga6gbt6viabml4d8hv3gc.apps.googleusercontent.com")
                 .requestEmail()
-                .requestScopes(Scope(DriveScopes.DRIVE))
+                .requestScopes(Scope(DriveScopes.DRIVE_FILE))
                 .build()
             return GoogleSignIn.getClient(context, signInOptions)
         }
