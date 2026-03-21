@@ -2,7 +2,6 @@ package com.example.gokudiyugam
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.Uri
 import com.example.gokudiyugam.model.FunctionEvent
 import com.example.gokudiyugam.model.SabhaMeeting
 import com.example.gokudiyugam.model.UserRole
@@ -46,19 +45,33 @@ class PreferenceManager(context: Context) {
         return sharedPreferences.getString("current_username", null)
     }
 
-    fun saveUserCredentials(username: String, password: String, role: UserRole, actualEmail: String) {
+    // Guest UID Persistence
+    fun saveGuestUid(uid: String) {
+        sharedPreferences.edit().putString("guest_uid", uid).apply()
+    }
+
+    fun getGuestUid(): String {
+        return sharedPreferences.getString("guest_uid", "") ?: ""
+    }
+
+    // --- Video Player Preferences ---
+    fun saveDefaultPlayer(player: String) {
+        sharedPreferences.edit().putString("default_video_player", player).apply()
+    }
+
+    fun getDefaultPlayer(): String {
+        return sharedPreferences.getString("default_video_player", "ExoPlayer") ?: "ExoPlayer"
+    }
+
+    // Point 1 Fix: Removed Password from storage
+    fun saveUserCredentials(username: String, role: UserRole, actualEmail: String) {
         val editor = sharedPreferences.edit()
-        editor.putString("user_$username", password)
         editor.putString("role_$username", role.name)
         editor.putString("email_$username", actualEmail)
         val usernames = getAllUsernames().toMutableSet()
         usernames.add(username)
         editor.putStringSet("all_usernames", usernames)
         editor.apply()
-    }
-
-    fun getPasswordForUser(username: String): String {
-        return sharedPreferences.getString("user_$username", "") ?: ""
     }
 
     fun getAllUsernames(): Set<String> {
@@ -79,7 +92,6 @@ class PreferenceManager(context: Context) {
     }
 
     fun getUsernameByIdentifier(identifier: String): String? {
-        if (sharedPreferences.contains("user_$identifier")) return identifier
         val allPrefs = sharedPreferences.all
         for (entry in allPrefs.entries) {
             if (entry.key.startsWith("email_") && entry.value == identifier) {

@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -36,6 +37,7 @@ import com.example.gokudiyugam.drive.DriveViewModel
 import com.example.gokudiyugam.model.UserRole
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,29 +52,54 @@ fun KirtanScreen(
     val db = FirebaseFirestore.getInstance("mediadata")
     val preferenceManager = remember { PreferenceManager(context) }
     
-    val currentUser = preferenceManager.getCurrentUsername() ?: ""
-    val userRole = preferenceManager.getUserRoleForAccount(currentUser)
-    val permissions = preferenceManager.getUserPermissions(currentUser)
+    // Screen-specific permission logic
+    var canEdit by remember { mutableStateOf(false) }
+    var userRole by remember { mutableStateOf(UserRole.NORMAL) }
     
-    val canEdit = userRole == UserRole.HOST || (userRole == UserRole.SUB_HOST && permissions.contains("screen_kirtan"))
+    LaunchedEffect(Unit) {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            db.collection("users").document(user.uid).addSnapshotListener { doc, _ ->
+                if (doc != null && doc.exists()) {
+                    val permissions = (doc.get("permissions") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                    val roleStr = doc.getString("role") ?: "NORMAL"
+                    userRole = try { UserRole.valueOf(roleStr) } catch(e: Exception) { UserRole.NORMAL }
+                    
+                    // User is HOST or (User is SUB_HOST and has "Kirtan" permission)
+                    canEdit = userRole == UserRole.HOST || (userRole == UserRole.SUB_HOST && permissions.contains("Kirtan"))
+                }
+            }
+        }
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+    
     var selectedCategoryForAdd by remember { mutableStateOf("Arati") }
     var kirtanTitle by remember { mutableStateOf("") }
     var selectedAudioUri by remember { mutableStateOf<Uri?>(null) }
     var selectedAudioName by remember { mutableStateOf("No file selected") }
 
-    val categories = listOf(
+    val staticCategories = listOf(
         "Arati", "Thal", "Dhun", "Prathana", "Bhajan", "Puja Vidhi", "Others", "Favorite", "All Kirtans"
     )
+    
+    // Combined categories: Static + Dynamic (from Firestore)
+    val allCategories = (staticCategories + kirtanViewModel.dynamicCategories).distinct()
+    
+    val filteredCategories = if (searchQuery.isEmpty()) {
+        allCategories
+    } else {
+        allCategories.filter { it.contains(searchQuery, ignoreCase = true) }
+    }
 
     val audioPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             selectedAudioUri = it
-            // Simple way to get a display name, could be improved
             selectedAudioName = it.lastPathSegment ?: "Selected Audio"
         }
     }
@@ -109,10 +136,18 @@ fun KirtanScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (userRole == UserRole.HOST) {
+                        IconButton(onClick = { showAddCategoryDialog = true }) {
+                            Icon(Icons.Default.LibraryAdd, contentDescription = "Add Category")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         },
@@ -136,7 +171,7 @@ fun KirtanScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
-                placeholder = { Text("Search Kirtan...") },
+                placeholder = { Text("Search Kirtan Category...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true
@@ -148,15 +183,45 @@ fun KirtanScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(categories) { category ->
+                items(filteredCategories) { category ->
                     KirtanCategoryCard(
                         label = category,
                         isFavorite = category == "Favorite",
                         isAll = category == "All Kirtans",
+                        isDynamic = kirtanViewModel.dynamicCategories.contains(category),
+                        canDelete = userRole == UserRole.HOST,
+                        onDelete = { kirtanViewModel.removeCategory(category) },
                         onClick = { onNavigateToPlayer(category) }
                     )
                 }
             }
+        }
+
+        if (showAddCategoryDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddCategoryDialog = false },
+                title = { Text("Add New Category") },
+                text = {
+                    OutlinedTextField(
+                        value = newCategoryName,
+                        onValueChange = { newCategoryName = it },
+                        label = { Text("Category Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        if (newCategoryName.isNotBlank()) {
+                            kirtanViewModel.addCategory(newCategoryName)
+                            newCategoryName = ""
+                            showAddCategoryDialog = false
+                        }
+                    }) { Text("Add") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddCategoryDialog = false }) { Text("Cancel") }
+                }
+            )
         }
 
         if (showAddDialog) {
@@ -173,7 +238,7 @@ fun KirtanScreen(
                                 Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                             }
                             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                categories.filter { it != "Favorite" && it != "All Kirtans" }.forEach { cat ->
+                                allCategories.filter { it != "Favorite" && it != "All Kirtans" }.forEach { cat ->
                                     DropdownMenuItem(
                                         text = { Text(cat) }, 
                                         onClick = { 
@@ -254,15 +319,27 @@ fun KirtanScreen(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun KirtanCategoryCard(
     label: String, 
     isFavorite: Boolean = false,
     isAll: Boolean = false,
+    isDynamic: Boolean = false,
+    canDelete: Boolean = false,
+    onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     Card(
-        modifier = Modifier.fillMaxWidth().height(110.dp).clickable { onClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { if (isDynamic && canDelete) showDeleteConfirm = true }
+            ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
@@ -291,5 +368,25 @@ fun KirtanCategoryCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = label, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center)
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete Category") },
+            text = { Text("Are you sure you want to delete '$label'? (Existing kirtans won't be deleted but will be hidden from this list)") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }

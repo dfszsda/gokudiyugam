@@ -36,6 +36,8 @@ import com.example.gokudiyugam.drive.DriveViewModel
 import com.example.gokudiyugam.model.UserRole
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +60,22 @@ fun SabhaTimeTableScreen(
     var sabhaTitleHi by remember { mutableStateOf("") }
     var isTranslating by remember { mutableStateOf(false) }
 
-    val canEdit = preferenceManager.hasPermission(preferenceManager.getCurrentUsername() ?: "", "Sabha")
+    // Screen-specific permission logic
+    val (canEdit, setCanEdit) = remember { mutableStateOf(false) }
+    
+    LaunchedEffect(currentUserRole) {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            FirebaseFirestore.getInstance("mediadata").collection("users").document(user.uid).get().addOnSuccessListener { doc ->
+                val permissions = (doc.get("permissions") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                val roleStr = doc.getString("role") ?: "NORMAL"
+                val role = try { UserRole.valueOf(roleStr) } catch(e: Exception) { UserRole.NORMAL }
+                
+                // User is HOST or (User is SUB_HOST and has "Sabha" permission)
+                setCanEdit(role == UserRole.HOST || (role == UserRole.SUB_HOST && permissions.contains("Sabha")))
+            }
+        }
+    }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -223,24 +240,10 @@ fun SabhaTimeTableScreen(
                         }
                     }) { Text("Post Update") }
                 },
-                dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("Cancel") } }
+                dismissButton = {
+                    TextButton(onClick = { showAddDialog = false }) { Text("Cancel") }
+                }
             )
-        }
-    }
-}
-
-@Composable
-fun DynamicSabhaItem(title: String, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF1976D2))
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = title, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -248,29 +251,46 @@ fun DynamicSabhaItem(title: String, onClick: () -> Unit) {
 @Composable
 fun NewSabhaItem(name: String, time: String, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7ED)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
-        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Surface(modifier = Modifier.size(56.dp), shape = RoundedCornerShape(16.dp), color = Color(0xFFFFE0B2)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(imageVector = Icons.Default.Groups, contentDescription = null, tint = Color(0xFFE65100), modifier = Modifier.size(28.dp))
-                }
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFFF9800).copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Event, contentDescription = null, tint = Color(0xFFFF9800))
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color(0xFF424242))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = time, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
+            Column {
+                Text(text = name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = time, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
-            Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(Color.White), contentAlignment = Alignment.Center) {
-                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFFF9800), modifier = Modifier.size(20.dp))
-            }
+        }
+    }
+}
+
+@Composable
+fun DynamicSabhaItem(title: String, onClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE0B2)),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color(0xFFE65100))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
         }
     }
 }

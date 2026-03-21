@@ -29,6 +29,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -45,6 +46,8 @@ import com.example.gokudiyugam.model.UserRole
 import com.example.gokudiyugam.model.MediaItem
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -71,9 +74,24 @@ fun MandirDarshanPhotoScreen(
     var photoTitle by remember { mutableStateOf("") }
     var allowDownload by remember { mutableStateOf(true) }
     
-    val currentUsername = preferenceManager.getCurrentUsername() ?: ""
-    val canEdit = currentUserRole == UserRole.HOST ||
-                 (currentUserRole == UserRole.SUB_HOST && preferenceManager.hasPermission(currentUsername, "screen_mandir_darshan"))
+    // Screen-specific permission logic
+    var canEdit by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            FirebaseFirestore.getInstance("mediadata").collection("users").document(user.uid).addSnapshotListener { doc, _ ->
+                if (doc != null && doc.exists()) {
+                    val permissions = (doc.get("permissions") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                    val roleStr = doc.getString("role") ?: "NORMAL"
+                    val role = try { UserRole.valueOf(roleStr) } catch(e: Exception) { UserRole.NORMAL }
+                    
+                    // User is HOST or (User is SUB_HOST and has "Daily Darshan" permission)
+                    canEdit = role == UserRole.HOST || (role == UserRole.SUB_HOST && permissions.contains("Daily Darshan"))
+                }
+            }
+        }
+    }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -238,8 +256,20 @@ fun MandirDarshanPhotoScreen(
                 confirmButton = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Show delete button only to authorized users
+                        if (canEdit) {
+                            IconButton(onClick = {
+                                driveViewModel.deleteItem(context, selectedPhoto!!, "mandir_darshan")
+                                selectedPhoto = null
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
                         if (selectedPhoto?.canDownload == true || currentUserRole == UserRole.HOST) {
                             TextButton(onClick = {
                                 scope.launch {

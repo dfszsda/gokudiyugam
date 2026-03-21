@@ -4,9 +4,10 @@ Gokudiyugam App - Developer Documentation
 1. Technical Stack:
    - Language: Kotlin
    - UI Framework: Jetpack Compose (Modern Android UI)
-   - Database/Auth: Firebase (Firestore, Auth)
+   - Database/Auth: Firebase (Firestore, Auth) - Uses "mediadata" instance for core content.
    - AI Integration: Google Gemini 1.5 Flash (via Generative AI SDK)
    - Media: Media3 Exoplayer for Kirtan and Video playback.
+   - External Sync: Google Sheets API integration via Apps Script for user record synchronization.
    - Storage: Google Drive API integration for dynamic content.
 
 2. Architecture:
@@ -19,11 +20,12 @@ Gokudiyugam App - Developer Documentation
    - AIService.kt: Handles content safety checks and multi-language translation using Gemini AI.
    - PreferenceManager.kt: Manages local storage (SharedPreferences) for user sessions, language settings, and local permissions.
    - BiometricManager.kt: Implementation for Fingerprint/Face ID authentication.
+   - GoogleSheetsUploader.kt: Handles background synchronization of user data (roles, details) to a central Google Sheet.
 
 4. Permission System:
    - Roles: HOST, SUB_HOST, NORMAL.
    - Permissions are stored in Firestore under the `users` collection and cached locally.
-   - Admin Panel allows granular control over which Sub-Host can access which screen (e.g., "Sabha", "Kirtan").
+   - Admin Panel allows granular control over which Sub-Host can access which screen (e.g., "Sabha", "Kirtan", "Admin: Home Slider").
 
 5. Multi-Language Support:
    - Local strings are managed via `res/values/strings.xml` (en, gu, hi).
@@ -32,3 +34,4 @@ Gokudiyugam App - Developer Documentation
 6. Deployment:
    - Requires `google-services.json` for Firebase.
    - API Keys for Gemini AI should be managed via `BuildConfig`.
+   - Google Apps Script URL for Sheets integration is hardcoded in `GoogleSheetsUploader`.

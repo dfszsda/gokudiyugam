@@ -66,7 +66,7 @@
 
     <!-- Home -->
     <string name="baps_mandal">BAPS श्री स्वामीनारायण मंदिर</string>
-    <string name="badalpur">बादलपुर</string>
+    <string name="badalpur">बदलपुर</string>
     <string name="jay_swaminarayan">जय स्वामीनारायण</string>
     <string name="welcome_spiritual_home">अपने आध्यात्मिक घर में आपका स्वागत है</string>
     <string name="quick_services">त्वरित सेवाएँ</string>
@@ -104,7 +104,7 @@
     <string name="update_password_desc">अपना खाता पासवर्ड अपडेट करें</string>
     <string name="language">भाषा</string>
     <string name="app_language">एप्लिकेशन भाषा</string>
-    <string name="version">संस्करण 1.9.0</string>
+    <string name="version">संस्करण 1.9.1</string>
     <string name="choose_bg_color">पृष्ठभूमि रंग चुनें</string>
     <string name="old_password">पुराना पासवर्ड</string>
     <string name="new_password">नया पासवर्ड</string>
@@ -209,7 +209,7 @@
     <string name="no_events_scheduled">कोई कार्यक्रम निर्धारित नहीं है</string>
     <string name="add_new_function">नया उत्सव जोड़ें</string>
     <string name="event_name">कार्यक्रम का नाम</string>
-    <string name="video_url_optional">वीडियो URL (वैकल्पिक)</string>
+    <string name="video_url_optional">वीडियो URL (वैकल्फिक)</string>
     <string name="select_time">समय चुनें</string>
     <string name="auto_delete_time">ऑटो डिलीट समय</string>
     <string name="add">जोड़ें</string>
@@ -230,4 +230,20 @@
     <string name="ai_verified">AI सत्यापित</string>
     <string name="ai_denied">AI द्वारा पहुँच अस्वीकार</string>
     <string name="send_link">लिंक भेजें</string>
+
+    <!-- Media Library -->
+    <string name="media_library">मीडिया लाइब्रेरी</string>
+    <string name="add_media">मीडिया जोड़ें</string>
+    <string name="media_type">मीडिया प्रकार</string>
+    <string name="post_to_screen">स्क्रीन पर पोस्ट करें</string>
+    <string name="delete_media">मीडिया हटाएं</string>
+    <string name="delete_media_confirm">क्या आप वाकई \'%1$s\' हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।</string>
+    <string name="upload">अपलोड</string>
+    <string name="choose_file">फ़ाइल चुनें</string>
+    <string name="file_selected">फ़ाइल चुनी गई</string>
+    <string name="youtube_link">यूट्यूब लिंक</string>
+    <string name="post_link">लिंक पोस्ट करें</string>
+    <string name="select_where_to_show">चुनें कि आप इस आइटम को कहाँ दिखाना चाहते हैं:</string>
+    <string name="post_now">अभी पोस्ट करें</string>
+
 </resources>

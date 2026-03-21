@@ -1,25 +1,79 @@
 rules_version = '2';
 
-// Firebase Storage Rules for Gokudiyugam App
-service firebase.storage {
-  match /b/{bucket}/o {
-    
-    // 'uploads' ફોલ્ડર માટેના રૂલ્સ
-    match /uploads/{category}/{fileName} {
-      
-      // કોઈપણ વ્યક્તિ ફોટા/વીડિયો જોઈ શકશે (Read access)
-      allow read: if true;
-      
-      // માત્ર લોગીન થયેલ યુઝર જ ફાઈલ અપલોડ કરી શકશે (Write access)
-      allow write: if request.auth != null 
-                   && request.resource.size < 10 * 1024 * 1024 // 10MB limit
-                   && request.resource.contentType.matches('image/.*|video/.*|audio/.*|application/pdf');
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is Host
+    function isHost() {
+      return request.auth != null &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'HOST';
     }
 
-    // અન્ય ફાઈલો માટે ડિફોલ્ટ સુરક્ષા
+    // Helper function to check if user is Sub-Host
+    function isSubHost() {
+      return request.auth != null &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUB_HOST';
+    }
+
+    // Rules for 'users' collection
+    match /users/{userId} {
+      // Any authenticated user can read user profiles (needed for names/status)
+      allow read: if request.auth != null;
+
+      // User can update their own status (online/lastSeen)
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions', 'email']);
+
+      // Only Host can change roles, permissions, or delete users
+      allow create, update, delete: if isHost();
+    }
+
+    // Rules for 'home_images' (Slider)
+    match /home_images/{imageId} {
+      allow read: if true;
+      allow write: if isHost() || (isSubHost() && 'Admin: Home Slider' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions);
+    }
+
+    // Rules for 'password_requests'
+    match /password_requests/{requestId} {
+      allow create: if true; // Anyone can request
+      allow read, delete: if isHost() || isSubHost();
+    }
+
+    // Rules for 'help_feedback'
+    match /help_feedback/{feedbackId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isHost() || isSubHost();
+    }
+
+    // Default for all other collections in 'mediadata'
+    match /{document=**} {
+      allow read: if request.auth != null;
+      allow write: if isHost() || isSubHost();
+    }
+  }
+}
+
+// Storage Rules
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /uploads/{category}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+                   (get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['HOST', 'SUB_HOST'])
+                   && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /home_slider/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+                   (get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['HOST', 'SUB_HOST']);
+    }
+
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null &&
+                   get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'HOST';
     }
   }
 }

@@ -103,7 +103,7 @@
     <string name="update_password_desc">Update your account password</string>
     <string name="language">Language</string>
     <string name="app_language">Application Language</string>
-    <string name="version">Version 1.9.0</string>
+    <string name="version">Version 1.9.1</string>
     <string name="choose_bg_color">Choose Background Color</string>
     <string name="old_password">Old Password</string>
     <string name="new_password">New Password</string>
@@ -229,6 +229,21 @@
     <string name="ai_verified">AI Verified</string>
     <string name="ai_denied">Access Denied by AI</string>
     <string name="send_link">Send Link</string>
+
+    <!-- Media Library -->
+    <string name="media_library">Media Library</string>
+    <string name="add_media">Add Media</string>
+    <string name="media_type">Media Type</string>
+    <string name="post_to_screen">Post to Screen</string>
+    <string name="delete_media">Delete Media</string>
+    <string name="delete_media_confirm">Are you sure you want to delete \'%1$s\'? This action cannot be undone.</string>
+    <string name="upload">Upload</string>
+    <string name="choose_file">Choose File</string>
+    <string name="file_selected">File Selected</string>
+    <string name="youtube_link">YouTube Link</string>
+    <string name="post_link">Post Link</string>
+    <string name="select_where_to_show">Select where you want to show this item:</string>
+    <string name="post_now">Post Now</string>
 
     <!-- Facebook application ID and custom URL scheme (app ID prefixed by 'fb'). -->
     <string name="facebook_application_id" translatable="false">1:728177722635:android:413efd437a7a5c9f0ace0e</string>

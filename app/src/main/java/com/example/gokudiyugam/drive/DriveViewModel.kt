@@ -62,6 +62,18 @@ class DriveViewModel : ViewModel() {
         category: String,
         canDownload: Boolean = true
     ) {
+        uploadFestivalItem(context, uri, title, category, null, canDownload, null)
+    }
+
+    fun uploadFestivalItem(
+        context: Context,
+        uri: Uri,
+        title: String,
+        category: String,
+        folderId: String? = null,
+        canDownload: Boolean = true,
+        expiryTimestamp: Long? = null
+    ) {
         val currentUser = getCurrentUser()
         val googleAccount = selectedGoogleAccount
 
@@ -90,7 +102,12 @@ class DriveViewModel : ViewModel() {
                 ).setApplicationName("Gokudiyugam").build()
 
                 val extension = getFileExtension(context, uri)
-                val fileMetadata = File().apply { name = "$title.$extension" }
+                val fileMetadata = File().apply { 
+                    name = "$title.$extension"
+                    if (folderId != null) {
+                        parents = listOf(folderId)
+                    }
+                }
 
                 val contentResolver = context.contentResolver
                 val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Failed to open URI")
@@ -107,11 +124,8 @@ class DriveViewModel : ViewModel() {
                 }
                 driveService.permissions().create(driveFile.id, permission).execute()
 
-                val downloadUrl = when {
-                    mimeType.startsWith("video/") || mimeType == "application/pdf" || 
-                    mimeType.contains("word") || mimeType.contains("officedocument") -> driveFile.webViewLink 
-                    else -> driveFile.webContentLink ?: driveFile.webViewLink
-                }
+                // Use direct download link for better compatibility with ExoPlayer
+                val downloadUrl = "https://drive.google.com/uc?export=download&id=${driveFile.id}"
                 
                 val itemId = UUID.randomUUID().toString()
                 val mediaTypeStr = when {
@@ -131,6 +145,7 @@ class DriveViewModel : ViewModel() {
                     "mediaType" to mediaTypeStr,
                     "uploadedBy" to currentUser.uid,
                     "canDownload" to canDownload,
+                    "expiryTimestamp" to expiryTimestamp,
                     "timestamp" to FieldValue.serverTimestamp()
                 )
                 
@@ -142,6 +157,7 @@ class DriveViewModel : ViewModel() {
                     "mediaType" to mediaTypeStr,
                     "uploadedBy" to currentUser.uid,
                     "canDownload" to canDownload,
+                    "expiryTimestamp" to expiryTimestamp,
                     "timestamp" to System.currentTimeMillis()
                 )
 
@@ -201,6 +217,9 @@ class DriveViewModel : ViewModel() {
         categoryListener?.remove()
         isFetching = true
         
+        // Auto-delete cleanup before fetching
+        cleanupExpiredItems()
+
         categoryListener = db.collection("mediadata")
             .whereIn("type", listOf(category.lowercase(), "youtube"))
             .addSnapshotListener { snapshot, e ->
@@ -219,6 +238,36 @@ class DriveViewModel : ViewModel() {
                 }
                 isFetching = false
             }
+    }
+
+    private fun cleanupExpiredItems() {
+        val currentTime = System.currentTimeMillis()
+        db.collection("mediadata")
+            .whereLessThan("expiryTimestamp", currentTime)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                for (doc in snapshot.documents) {
+                    val id = doc.id
+                    doc.reference.delete()
+                    rtdb.child(id).removeValue()
+                }
+            }
+    }
+
+    fun deleteItem(context: Context, item: MediaItem, category: String) {
+        viewModelScope.launch {
+            try {
+                db.collection("mediadata").document(item.id).delete().await()
+                rtdb.child(item.id).removeValue().await()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Item deleted", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Delete failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     override fun onCleared() {

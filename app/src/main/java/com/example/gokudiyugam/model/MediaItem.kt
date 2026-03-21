@@ -12,7 +12,8 @@ data class MediaItem(
     val type: String = "", // "photo", "video", "audio", "doc", "sabha_timetable"
     val mediaType: String = "", // "photo", "video", "audio", "doc", "file"
     val uploadedBy: String = "",
-    val canDownload: Boolean = true, // New field for download permission
+    val canDownload: Boolean = true,
+    val expiryTimestamp: Long? = null, // New field for auto-delete
     @ServerTimestamp
     val timestamp: Timestamp? = null
 )

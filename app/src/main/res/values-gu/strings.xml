@@ -104,7 +104,7 @@
     <string name="update_password_desc">તમારો એકાઉન્ટ પાસવર્ડ અપડેટ કરો</string>
     <string name="language">ભાષા</string>
     <string name="app_language">એપ્લિકેશન ભાષા</string>
-    <string name="version">આવૃત્તિ 1.9.0</string>
+    <string name="version">આવૃત્તિ 1.9.1</string>
     <string name="choose_bg_color">પૃષ્ઠભૂમિ રંગ પસંદ કરો</string>
     <string name="old_password">જૂનો પાસવર્ડ</string>
     <string name="new_password">નવો પાસવર્ડ</string>
@@ -230,4 +230,20 @@
     <string name="ai_verified">AI ચકાસાયેલ</string>
     <string name="ai_denied">AI દ્વારા ઍક્સેસ નકારવામાં આવી</string>
     <string name="send_link">લિંક મોકલો</string>
+
+    <!-- Media Library -->
+    <string name="media_library">મીડિયા લાઇબ્રેરી</string>
+    <string name="add_media">મીડિયા ઉમેરો</string>
+    <string name="media_type">મીડિયા પ્રકાર</string>
+    <string name="post_to_screen">સ્ક્રીન પર પોસ્ટ કરો</string>
+    <string name="delete_media">મીડિયા ડીલીટ કરો</string>
+    <string name="delete_media_confirm">શું તમે ખરેખર \'%1$s\' ડીલીટ કરવા માંગો છો? આ પ્રક્રિયા પાછી ખેંચી શકાશે નહીં.</string>
+    <string name="upload">અપલોડ</string>
+    <string name="choose_file">ફાઇલ પસંદ કરો</string>
+    <string name="file_selected">ફાઇલ પસંદ કરેલ છે</string>
+    <string name="youtube_link">યુટ્યુબ લિંક</string>
+    <string name="post_link">લિંક પોસ્ટ કરો</string>
+    <string name="select_where_to_show">આ આઇટમ તમે ક્યાં બતાવવા માંગો છો તે પસંદ કરો:</string>
+    <string name="post_now">હમણાં પોસ્ટ કરો</string>
+
 </resources>

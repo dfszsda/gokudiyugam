@@ -9,8 +9,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -38,7 +41,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     currentUserRole: UserRole? = null,
@@ -47,6 +49,7 @@ fun HomeScreen(
     onNavigateToSabhaTimeTable: () -> Unit,
     onNavigateToFunctions: () -> Unit,
     onNavigateToSatsangNews: () -> Unit,
+    onNavigateToSabhaSaar: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToMediaLibrary: () -> Unit,
     onProfileClick: () -> Unit,
@@ -68,82 +71,12 @@ fun HomeScreen(
     }
 
     Scaffold(
-        topBar = {
-            LargeTopAppBar(
-                title = { 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.icon),
-                            contentDescription = "App Logo",
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .padding(2.dp),
-                            contentScale = ContentScale.Inside
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                stringResource(R.string.baps_mandal),
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = (-0.5).sp
-                                )
-                            )
-                            Text(
-                                stringResource(R.string.badalpur),
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                                )
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                actions = {
-                    IconButton(
-                        onClick = { 
-                            if (currentUserRole != null) showMenu = true else onProfileClick()
-                        },
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Profile",
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.logout)) },
-                            onClick = {
-                                showMenu = false
-                                onLogout()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
-                            }
-                        )
-                    }
-                }
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(bottom = innerPadding.calculateBottomPadding()) // Using only bottom padding
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -152,64 +85,153 @@ fun HomeScreen(
                         )
                     )
                 )
-                .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 1. Image Slider Header (Integrated with Top Bar functionality)
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (homeImages.isNotEmpty()) {
+                    val pagerState = rememberPagerState(pageCount = { homeImages.size })
+                    
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(5000)
+                            if (homeImages.size > 1) {
+                                val nextPage = (pagerState.currentPage + 1) % homeImages.size
+                                pagerState.animateScrollToPage(nextPage)
+                            }
+                        }
+                    }
+
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f) // 16:9 aspect ratio
+                    ) { page ->
+                        AsyncImage(
+                            model = homeImages[page],
+                            contentDescription = "Slider Image $page",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                } else {
+                    // Placeholder if no images
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
+
+                // Top Bar Overlay (Gradient for visibility)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent),
+                                endY = 200f
+                            )
+                        )
+                )
+
+                // Navigation & Profile Controls Overlay
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            modifier = Modifier.size(42.dp),
+                            shape = CircleShape,
+                            color = Color.White,
+                            shadowElevation = 4.dp
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.icon),
+                                contentDescription = "App Logo",
+                                modifier = Modifier.padding(4.dp),
+                                contentScale = ContentScale.Inside
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.baps_mandal),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                shadow = Shadow(
+                                    color = Color.Black,
+                                    offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                                    blurRadius = 8f
+                                )
+                            )
+                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { if (currentUserRole != null) showMenu = true else onProfileClick() },
+                            modifier = Modifier
+                                .background(Color.White.copy(alpha = 0.3f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Profile",
+                                tint = Color.White
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.logout)) },
+                                onClick = {
+                                    showMenu = false
+                                    onLogout()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
-            
-            // Hero Section with Image Slider
+
+            // 2. Welcome Card Section
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
+                    .padding(horizontal = 20.dp)
                     .shadow(12.dp, RoundedCornerShape(28.dp)),
                 shape = RoundedCornerShape(28.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    if (homeImages.isEmpty()) {
-                        // Fallback Image
-                        Image(
-                            painter = painterResource(id = R.drawable.photo),
-                            contentDescription = "Welcome Image",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        val pagerState = rememberPagerState(pageCount = { homeImages.size })
-                        
-                        // Auto-scroll logic (5 seconds)
-                        LaunchedEffect(Unit) {
-                            while (true) {
-                                delay(5000)
-                                if (homeImages.size > 1) {
-                                    val nextPage = (pagerState.currentPage + 1) % homeImages.size
-                                    pagerState.animateScrollToPage(nextPage)
-                                }
-                            }
-                        }
-
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize()
-                        ) { page ->
-                            AsyncImage(
-                                model = homeImages[page],
-                                contentDescription = "Home Slide $page",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-
-                    // Overlay Text Background
+                Box {
+                    Image(
+                        painter = painterResource(id = R.drawable.photo),
+                        contentDescription = "Welcome Image",
+                        modifier = Modifier.fillMaxWidth(),
+                        contentScale = ContentScale.FillWidth
+                    )
                     Box(
                         modifier = Modifier
                             .matchParentSize()
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                    startY = 200f
+                                    startY = 100f
                                 )
                             )
                             .padding(20.dp),
@@ -223,8 +245,8 @@ fun HomeScreen(
                             )
                             Text(
                                 text = "BAPS Shri Swaminarayan Mandir, Badalpur",
-                                color = Color.White.copy(alpha = 0.9f),
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                color = Color.White.copy(alpha = 0.8f),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
@@ -233,36 +255,33 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.quick_services),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                TextButton(onClick = { /* TODO */ }) {
-                    Text(stringResource(R.string.see_all), color = MaterialTheme.colorScheme.primary)
-                }
-            }
+            // Service Header
+            Text(
+                text = stringResource(R.string.quick_services),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+            )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Grid for Services
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(bottom = 32.dp)
+                modifier = Modifier
+                    .heightIn(max = 2000.dp)
+                    .padding(horizontal = 20.dp),
+                contentPadding = PaddingValues(bottom = 32.dp),
+                userScrollEnabled = false 
             ) {
                 if (currentUserRole == UserRole.HOST || currentUserRole == UserRole.SUB_HOST) {
                     item {
                         FeatureCard(
                             title = "Admin Panel",
                             icon = Icons.Default.AdminPanelSettings,
-                            description = "Manage Users & Content",
+                            description = "Manage Content",
                             onClick = onNavigateToAdminPanel
                         )
                     }
@@ -304,15 +323,23 @@ fun HomeScreen(
                         title = "Sabha Saar",
                         icon = Icons.Default.Newspaper,
                         description = stringResource(R.string.latest_updates),
+                        onClick = onNavigateToSabhaSaar
+                    )
+                }
+                item { 
+                    FeatureCard(
+                        title = "Satsang News",
+                        icon = Icons.Default.Campaign,
+                        description = "Coming Soon...",
                         onClick = onNavigateToSatsangNews
                     )
                 }
                 item { 
                     FeatureCard(
-                        title = "Google Drive",
-                        icon = Icons.Default.CloudQueue,
-                        description = "Shared Documents",
-                        onClick = onNavigateToGoogleDrive
+                        title = stringResource(R.string.settings),
+                        icon = Icons.Default.Settings,
+                        description = stringResource(R.string.preferences),
+                        onClick = onNavigateToSettings
                     )
                 }
             }

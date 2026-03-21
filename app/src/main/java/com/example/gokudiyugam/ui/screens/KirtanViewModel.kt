@@ -3,6 +3,7 @@ package com.example.gokudiyugam.ui.screens
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,8 +21,10 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class KirtanViewModel : ViewModel() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -31,11 +34,14 @@ class KirtanViewModel : ViewModel() {
     var currentKirtan by mutableStateOf<Kirtan?>(null)
     var playbackPosition by mutableStateOf(0L)
     var duration by mutableStateOf(0L)
+    var errorMessage by mutableStateOf<String?>(null)
     
     val favoriteKirtans = mutableStateListOf<Kirtan>()
     val sharedKirtans = mutableStateListOf<Kirtan>()
+    val dynamicCategories = mutableStateListOf<String>()
     
     private var sharedKirtansListener: ListenerRegistration? = null
+    private var categoriesListener: ListenerRegistration? = null
 
     fun isControllerInitialized(): Boolean = mediaController != null
 
@@ -45,16 +51,32 @@ class KirtanViewModel : ViewModel() {
         val sessionToken = SessionToken(context, ComponentName(context, KirtanAudioService::class.java))
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture?.addListener({
-            mediaController = controllerFuture?.get()
-            mediaController?.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(playing: Boolean) {
-                    isPlaying = playing
-                }
-            })
-            startPositionUpdater()
+            try {
+                mediaController = controllerFuture?.get()
+                mediaController?.addListener(object : Player.Listener {
+                    override fun onIsPlayingChanged(playing: Boolean) {
+                        isPlaying = playing
+                    }
+
+                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                        errorMessage = "Playback Error: ${error.localizedMessage}"
+                        Log.e("KirtanViewModel", "Player error", error)
+                    }
+
+                    override fun onPlaybackStateChanged(state: Int) {
+                        if (state == Player.STATE_READY) {
+                            errorMessage = null
+                        }
+                    }
+                })
+                startPositionUpdater()
+            } catch (e: Exception) {
+                Log.e("KirtanViewModel", "Error initializing controller: ${e.message}")
+            }
         }, MoreExecutors.directExecutor())
         
         loadFavorites(context)
+        fetchDynamicCategories()
     }
 
     private fun startPositionUpdater() {
@@ -69,19 +91,70 @@ class KirtanViewModel : ViewModel() {
         }
     }
 
-    fun fetchSharedKirtans() {
-        if (sharedKirtansListener != null) return
-        
+    private fun fetchDynamicCategories() {
         val db = FirebaseFirestore.getInstance("mediadata")
-        sharedKirtansListener = db.collection("mediadata")
-            .whereEqualTo("type", "audio")
+        categoriesListener = db.collection("kirtan_categories")
             .addSnapshotListener { snapshot, e ->
                 if (e != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    val cats = snapshot.documents.mapNotNull { it.getString("name") }
+                    dynamicCategories.clear()
+                    dynamicCategories.addAll(cats)
+                }
+            }
+    }
+
+    fun addCategory(name: String) {
+        viewModelScope.launch {
+            val db = FirebaseFirestore.getInstance("mediadata")
+            db.collection("kirtan_categories").document(name.lowercase()).set(mapOf("name" to name)).await()
+        }
+    }
+
+    fun removeCategory(name: String) {
+        viewModelScope.launch {
+            val db = FirebaseFirestore.getInstance("mediadata")
+            db.collection("kirtan_categories").document(name.lowercase()).delete().await()
+        }
+    }
+
+    fun fetchKirtansByCategory(category: String) {
+        sharedKirtansListener?.remove()
+        sharedKirtans.clear()
+
+        // If category is "Favorite", we don't fetch from Firestore here
+        // as Favorites are handled locally.
+        if (category == "Favorite" || category == "ફેવરિટ" || category == "पસંદગીના") {
+            return
+        }
+        
+        val db = FirebaseFirestore.getInstance("mediadata")
+        var query = db.collection("mediadata")
+            .whereEqualTo("mediaType", "audio")
+
+        if (category != "All Kirtans" && category != "બધા કીર્તનો" && category != "audio") {
+            query = query.whereEqualTo("type", category.lowercase())
+        } else if (category == "audio") {
+             query = query.whereEqualTo("type", "audio")
+        }
+
+        sharedKirtansListener = query
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.e("KirtanViewModel", "Error fetching kirtans: ${e.message}")
+                    return@addSnapshotListener
+                }
                 
                 if (snapshot != null) {
                     val items = snapshot.toObjects(com.example.gokudiyugam.model.MediaItem::class.java)
                     val kirtans = items.map { item ->
-                        Kirtan(id = item.id, title = item.title, category = "Shared Kirtans", fileUri = item.url)
+                        Kirtan(
+                            id = item.id, 
+                            title = item.title, 
+                            category = category, 
+                            fileUri = item.url
+                        )
                     }
                     sharedKirtans.clear()
                     sharedKirtans.addAll(kirtans)
@@ -90,6 +163,7 @@ class KirtanViewModel : ViewModel() {
     }
 
     fun playKirtan(context: Context, kirtan: Kirtan, playlist: List<Kirtan> = emptyList()) {
+        errorMessage = null
         currentKirtan = kirtan
         mediaController?.let { controller ->
             controller.clearMediaItems()
@@ -97,7 +171,7 @@ class KirtanViewModel : ViewModel() {
                 val mediaItems = playlist.map { item ->
                     MediaItem.Builder()
                         .setMediaId(item.id)
-                        .setUri(if (item.fileUri != null) android.net.Uri.parse(item.fileUri) 
+                        .setUri(if (!item.fileUri.isNullOrEmpty()) android.net.Uri.parse(item.fileUri) 
                                 else android.net.Uri.parse("android.resource://${context.packageName}/${item.resourceId}"))
                         .build()
                 }
@@ -107,18 +181,25 @@ class KirtanViewModel : ViewModel() {
             } else {
                 val mediaItem = MediaItem.Builder()
                     .setMediaId(kirtan.id)
-                    .setUri(if (kirtan.fileUri != null) android.net.Uri.parse(kirtan.fileUri) 
+                    .setUri(if (!kirtan.fileUri.isNullOrEmpty()) android.net.Uri.parse(kirtan.fileUri)
                             else android.net.Uri.parse("android.resource://${context.packageName}/${kirtan.resourceId}"))
                     .build()
                 controller.setMediaItem(mediaItem)
             }
             controller.prepare()
             controller.play()
+        } ?: run {
+            Toast.makeText(context, "Player not initialized yet. Please try again.", Toast.LENGTH_SHORT).show()
+            initController(context)
         }
     }
 
     fun togglePlayPause() {
         mediaController?.let { if (it.isPlaying) it.pause() else it.play() }
+    }
+
+    fun seekTo(position: Long) {
+        mediaController?.seekTo(position)
     }
 
     fun skipForward() {
@@ -149,5 +230,6 @@ class KirtanViewModel : ViewModel() {
         super.onCleared()
         controllerFuture?.let { MediaController.releaseFuture(it) }
         sharedKirtansListener?.remove()
+        categoriesListener?.remove()
     }
 }
