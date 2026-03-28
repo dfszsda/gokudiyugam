@@ -48,7 +48,7 @@ class MediaViewModel : ViewModel() {
     }
 
     // ૨. Firebase Storage માં ફાઇલ અપલોડ અને ૩. Firestore/RTDB માં ફાઇલની વિગતો સેવ કરવી
-    fun uploadFile(uri: Uri, title: String, type: String) {
+    fun uploadFile(uri: Uri, title: String, type: String, lyrics: String? = null) {
         val userId = auth.currentUser?.uid ?: "anonymous"
         isUploading = true
         uploadProgress = 0f
@@ -77,7 +77,8 @@ class MediaViewModel : ViewModel() {
                     url = downloadUrl,
                     type = type,
                     uploadedBy = userId,
-                    timestamp = Timestamp.now()
+                    timestamp = Timestamp.now(),
+                    lyrics = lyrics
                 )
 
                 db.collection("mediadata").document(mediaItem.id).set(mediaItem).await()

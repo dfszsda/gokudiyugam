@@ -2,6 +2,8 @@ package com.example.gokudiyugam.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.view.ViewGroup
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,15 +30,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
 import com.example.gokudiyugam.model.FunctionEvent
 import com.example.gokudiyugam.model.UserRole
-import com.example.gokudiyugam.ui.theme.GokudiyugamTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
@@ -56,6 +58,8 @@ fun FunctionsScreen(
     onNavigateToVideoPlayer: (String, String) -> Unit
 ) {
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val window = activity?.window
     val lifecycleOwner = LocalLifecycleOwner.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -120,6 +124,19 @@ fun FunctionsScreen(
         }
     }
 
+    // Manage System Bars for Fullscreen/Landscape
+    LaunchedEffect(isLandscape, selectedFunction) {
+        window?.let {
+            val controller = WindowInsetsControllerCompat(it, it.decorView)
+            if (isLandscape && selectedFunction != null) {
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
     BackHandler {
         onBack()
     }
@@ -164,7 +181,7 @@ fun FunctionsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(if (isLandscape) PaddingValues(0.dp) else innerPadding)
+                .padding(if (isLandscape && selectedFunction != null) PaddingValues(0.dp) else innerPadding)
         ) {
             // 1. YouTube Player Section (Embedded like Puja Darshan)
             if (selectedFunction != null && selectedFunction?.url != null && isYoutubeUrl(selectedFunction!!.url!!)) {
@@ -178,6 +195,10 @@ fun FunctionsScreen(
                     AndroidView(
                         factory = { ctx ->
                             YouTubePlayerView(ctx).apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
                                 lifecycleOwner.lifecycle.addObserver(this)
                                 addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
                                     override fun onReady(youTubePlayer: YouTubePlayer) {

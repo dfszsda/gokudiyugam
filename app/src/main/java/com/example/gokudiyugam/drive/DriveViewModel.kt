@@ -14,7 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gokudiyugam.PreferenceManager
+import com.example.gokudiyugam.ai.AIService
 import com.example.gokudiyugam.model.MediaItem
+import com.example.gokudiyugam.service.NotificationHelper
 import com.google.android.gms.tasks.Tasks
 import com.google.api.client.extensions.android.http.AndroidHttp
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
@@ -91,6 +94,10 @@ class DriveViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // Generate translations
+                val preferenceManager = PreferenceManager(context)
+                val translations = AIService.getTranslatedText(title, preferenceManager)
+
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context, listOf(DriveScopes.DRIVE_FILE)
                 ).setSelectedAccount(googleAccount)
@@ -124,7 +131,6 @@ class DriveViewModel : ViewModel() {
                 }
                 driveService.permissions().create(driveFile.id, permission).execute()
 
-                // Use direct download link for better compatibility with ExoPlayer
                 val downloadUrl = "https://drive.google.com/uc?export=download&id=${driveFile.id}"
                 
                 val itemId = UUID.randomUUID().toString()
@@ -140,6 +146,9 @@ class DriveViewModel : ViewModel() {
                 val firestoreMap = hashMapOf(
                     "id" to itemId,
                     "title" to title,
+                    "titleEn" to title,
+                    "titleGu" to (translations["gu"] ?: title),
+                    "titleHi" to (translations["hi"] ?: title),
                     "url" to downloadUrl,
                     "type" to category.lowercase(),
                     "mediaType" to mediaTypeStr,
@@ -152,6 +161,9 @@ class DriveViewModel : ViewModel() {
                 val rtdbMap = hashMapOf(
                     "id" to itemId,
                     "title" to title,
+                    "titleEn" to title,
+                    "titleGu" to (translations["gu"] ?: title),
+                    "titleHi" to (translations["hi"] ?: title),
                     "url" to downloadUrl,
                     "type" to category.lowercase(),
                     "mediaType" to mediaTypeStr,
@@ -165,6 +177,8 @@ class DriveViewModel : ViewModel() {
                 val rtdbTask = rtdb.child(itemId).setValue(rtdbMap)
                 
                 Tasks.whenAllComplete(firestoreTask, rtdbTask).await()
+                
+                sendAutoNotification(category, title)
                 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Uploaded Successfully!", Toast.LENGTH_SHORT).show()
@@ -189,10 +203,16 @@ class DriveViewModel : ViewModel() {
         
         viewModelScope.launch {
             try {
+                val preferenceManager = PreferenceManager(context)
+                val translations = AIService.getTranslatedText(title, preferenceManager)
+
                 val itemId = UUID.randomUUID().toString()
                 val mediaItem = hashMapOf(
                     "id" to itemId,
                     "title" to title,
+                    "titleEn" to title,
+                    "titleGu" to (translations["gu"] ?: title),
+                    "titleHi" to (translations["hi"] ?: title),
                     "url" to url,
                     "type" to category.lowercase(),
                     "mediaType" to "video",
@@ -204,6 +224,8 @@ class DriveViewModel : ViewModel() {
                 db.collection("mediadata").document(itemId).set(mediaItem).await()
                 rtdb.child(itemId).setValue(mediaItem).await()
                 
+                sendAutoNotification(category, title)
+                
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Posted Successfully!", Toast.LENGTH_SHORT).show()
                 }
@@ -213,11 +235,22 @@ class DriveViewModel : ViewModel() {
         }
     }
 
+    private fun sendAutoNotification(category: String, title: String) {
+        val (notifTitle, notifBody) = when (category.lowercase()) {
+            "guruhari_darshan" -> "ગુરુ હરિ દર્શન" to "નવું ગુરુ હરિ દર્શન વિડિયો મુકાયેલ છે: $title"
+            "mandir_darshan" -> "મંદિર દર્શન" to "આજનું સુંદર મંદિર દર્શન ઉપલબ્ધ છે: $title"
+            "festivals" -> "ઉત્સવ અપડેટ" to "ઉત્સવ સેક્શનમાં નવી અપડેટ: $title"
+            "sabha_saar" -> "સભા સાર" to "નવો સભા સાર મુકાયેલ છે: $title"
+            "news" -> "સત્સંગ સમાચાર" to "નવા સમાચાર: $title"
+            else -> "Gokudiyugam Update" to "નવી અપડેટ: $title"
+        }
+        NotificationHelper.sendNotificationToTopic("all_users", notifTitle, notifBody)
+    }
+
     fun fetchCategoryItems(category: String) {
         categoryListener?.remove()
         isFetching = true
         
-        // Auto-delete cleanup before fetching
         cleanupExpiredItems()
 
         categoryListener = db.collection("mediadata")

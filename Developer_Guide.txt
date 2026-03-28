@@ -1,37 +1,47 @@
-Gokudiyugam App - Developer Documentation
-=========================================
+Gokudiyugam App - Developer Documentation (v1.9.2)
+================================================
 
 1. Technical Stack:
    - Language: Kotlin
-   - UI Framework: Jetpack Compose (Modern Android UI)
-   - Database/Auth: Firebase (Firestore, Auth) - Uses "mediadata" instance for core content.
-   - AI Integration: Google Gemini 1.5 Flash (via Generative AI SDK)
-   - Media: Media3 Exoplayer for Kirtan and Video playback.
-   - External Sync: Google Sheets API integration via Apps Script for user record synchronization.
-   - Storage: Google Drive API integration for dynamic content.
+   - UI Framework: Jetpack Compose (Material 3)
+   - Database/Auth: Firebase (Firestore, Auth, App Check, Cloud Messaging)
+   - AI Integration:
+     - Google Generative AI SDK (Gemini 1.5 Flash) for advanced content tasks.
+     - Google ML Kit Translation (Offline & Online) for "Smart" language switching.
+     - Custom "Lipi" mapping engine in AIService.kt for phonetic transliteration.
+   - Media:
+     - Media3 Exoplayer for background Kirtan playback.
+     - YouTube Player library (Pierfrancesco Soffritti) for integrated video content.
+   - External Sync: Google Sheets API via Apps Script and Google Drive API (v3) for dynamic media/document management.
+   - Data Parsing: Gson for JSON serialization.
 
 2. Architecture:
-   - The app follows a modern MVVM (Model-View-ViewModel) pattern.
-   - UI Screens: Located in `ui/screens/`.
-   - ViewModels: Manage state and business logic (e.g., `DriveViewModel`).
-   - Models: Data classes in `model/` (e.g., `UserProfile`, `UserRole`, `SabhaMeeting`).
+   - Pattern: MVVM (Model-View-ViewModel).
+   - Core Package Structure:
+     - `ui/screens/`: Compose UI definitions (e.g., HomeScreen, AdminPanel).
+     - `model/`: Data classes (UserProfile, SabhaMeeting, SabhaTopic).
+     - `ai/`: AIService for translation and content safety.
+     - `security/`: Biometric and Permission logic.
+     - `drive/`: Google Drive integration.
 
-3. Core Components:
-   - AIService.kt: Handles content safety checks and multi-language translation using Gemini AI.
-   - PreferenceManager.kt: Manages local storage (SharedPreferences) for user sessions, language settings, and local permissions.
-   - BiometricManager.kt: Implementation for Fingerprint/Face ID authentication.
-   - GoogleSheetsUploader.kt: Handles background synchronization of user data (roles, details) to a central Google Sheet.
+3. Key Components:
+   - AIService.kt: Manages dual-mode translation (ML Kit Smart Translation + Manual Barakhadi Mapping).
+   - PreferenceManager.kt: Handles SharedPreferences, user session caching, and granular screen permissions.
+   - AnalyticsManager.kt: Logs screen views and events via Firebase Analytics.
+   - BiometricManager.kt: Standardized interface for system-level biometric prompts.
 
-4. Permission System:
+4. Permission & Role System:
    - Roles: HOST, SUB_HOST, NORMAL.
-   - Permissions are stored in Firestore under the `users` collection and cached locally.
-   - Admin Panel allows granular control over which Sub-Host can access which screen (e.g., "Sabha", "Kirtan", "Admin: Home Slider").
+   - Permissions: Controlled per screen (e.g., `screen_sabha_timetable`, `screen_admin_slider`).
+   - HOST has master access; SUB_HOST access is configurable via the Admin Panel.
 
-5. Multi-Language Support:
-   - Local strings are managed via `res/values/strings.xml` (en, gu, hi).
-   - Dynamic data (from Firebase) uses a multi-field approach (e.g., `titleEn`, `titleGu`, `titleHi`) supported by the Auto-Translate feature in the admin side.
+5. Content Management:
+   - Dynamic Home Slider: Managed through AdminPanelScreen, stored in Firestore/Firebase Storage.
+   - Sabha Timetable: Managed in SabhaDetailScreen with AI-assisted translation for topics.
+   - Media: Centralized handling of Kirtan playlists and Video data via MediaViewModel.
 
-6. Deployment:
-   - Requires `google-services.json` for Firebase.
-   - API Keys for Gemini AI should be managed via `BuildConfig`.
-   - Google Apps Script URL for Sheets integration is hardcoded in `GoogleSheetsUploader`.
+6. Deployment & Configuration:
+   - Target SDK: 36 (Android 15/16 preview ready).
+   - Min SDK: 26 (Android 8.0).
+   - Requires `google-services.json` and a valid Gemini API Key in `BuildConfig`.
+   - Proguard enabled for release builds with specific exclusions for gRPC and Firebase.

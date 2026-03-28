@@ -3,6 +3,8 @@
 package com.example.gokudiyugam.ui.screens
 
 import android.content.res.Configuration
+import android.view.ViewGroup
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +26,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gokudiyugam.PreferenceManager
@@ -46,6 +50,8 @@ fun GuruhariDarshanScreen(
     driveViewModel: DriveViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val window = activity?.window
     val lifecycleOwner = LocalLifecycleOwner.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -96,8 +102,27 @@ fun GuruhariDarshanScreen(
         }
     }
 
+    // Manage System Bars for Fullscreen/Landscape
+    LaunchedEffect(isLandscape, isFullScreen) {
+        window?.let {
+            val controller = WindowInsetsControllerCompat(it, it.decorView)
+            if (isLandscape || isFullScreen) {
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
     BackHandler {
-        if (isFullScreen) isFullScreen = false else onBack()
+        if (isFullScreen) {
+            isFullScreen = false 
+        } else if (isLandscape) {
+            onBack()
+        } else {
+            onBack()
+        }
     }
 
     Scaffold(
@@ -136,13 +161,17 @@ fun GuruhariDarshanScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(if (isLandscape) Modifier.fillMaxHeight() else Modifier.aspectRatio(1.777f))
+                        .then(if (isLandscape || isFullScreen) Modifier.fillMaxHeight() else Modifier.aspectRatio(1.777f))
                         .background(Color.Black),
                     contentAlignment = Alignment.Center
                 ) {
                     AndroidView(
                         factory = { ctx ->
                             YouTubePlayerView(ctx).apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
                                 lifecycleOwner.lifecycle.addObserver(this)
                                 addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
                                     override fun onReady(youTubePlayer: YouTubePlayer) {

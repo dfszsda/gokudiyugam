@@ -93,6 +93,21 @@
     <string name="festivals">उत्सव</string>
 
     <!-- Settings -->
+    <string name="profile_information">प्रोफ़ाइल जानकारी</string>
+    <string name="edit_profile">प्रोफ़ाइल संपादित करें</string>
+    <string name="reset_password">पासवर्ड रीसेट करें</string>
+    <string name="request_password_reset">पासवर्ड रीसेट का अनुरोध करें</string>
+    <string name="enter_registered_email">व्यवस्थापक को अनुरोध भेजने के लिए अपना पंजीकृत ईमेल पता दर्ज करें।</string>
+    <string name="send_request">अनुरोध भेजें</string>
+    <string name="app_preferences">ऐप प्राथमिकताएं</string>
+    <string name="dark_mode_on">चालू</string>
+    <string name="dark_mode_off">बंद</string>
+    <string name="video_player_type">वीडियो प्लेयर प्रकार</string>
+    <string name="preferred_video_quality">पसंदीदा वीडियो गुणवत्ता</string>
+    <string name="other">अन्य</string>
+    <string name="about_app">ऐप के बारे में</string>
+    <string name="help_feedback">सहायता और प्रतिक्रिया</string>
+    <string name="contact_support">किसी भी समस्या के लिए सहायता से संपर्क करें</string>
     <string name="preview">पूर्वावलोकन</string>
     <string name="appearance">दिखावट</string>
     <string name="dark_mode">डार्क मोड</string>
@@ -104,13 +119,14 @@
     <string name="update_password_desc">अपना खाता पासवर्ड अपडेट करें</string>
     <string name="language">भाषा</string>
     <string name="app_language">एप्लिकेशन भाषा</string>
-    <string name="version">संस्करण 1.9.1</string>
+    <string name="version">संस्करण 1.9.2</string>
     <string name="choose_bg_color">पृष्ठभूमि रंग चुनें</string>
     <string name="old_password">पुराना पासवर्ड</string>
     <string name="new_password">नया पासवर्ड</string>
     <string name="confirm_new_password">नये पासवर्ड की पुष्टि करें</string>
     <string name="update">अपडेट करें</string>
     <string name="cancel">रद्द करें</string>
+    <string name="save_changes">परिवर्तन सहेजें</string>
     <string name="error_not_logged_in">लॉग इन नहीं है</string>
     <string name="error_incorrect_old_password">गलत पुराना पासवर्ड</string>
     <string name="error_password_too_short">पासवर्ड बहुत छोटा है</string>
@@ -161,6 +177,7 @@
     <string name="sabha_mahila">महिला सभा</string>
     <string name="sabha_mahila_time">शनिवार, शाम 4:00 बजे</string>
     <string name="sabha_shishu">शिशु सभा</string>
+    <string name="user_profile">उपयोगकर्ता प्रोफ़ाइल</string>
     <string name="sabha_shishu_time">रविवार, दोपहर 3:00 बजे</string>
 
     <!-- Sabha Detail Screen -->

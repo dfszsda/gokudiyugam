@@ -60,6 +60,8 @@ fun SabhaTimeTableScreen(
     var sabhaTitleHi by remember { mutableStateOf("") }
     var isTranslating by remember { mutableStateOf(false) }
 
+    val translationMethod = remember { preferenceManager.getTranslationMethod() }
+
     // Screen-specific permission logic
     val (canEdit, setCanEdit) = remember { mutableStateOf(false) }
     
@@ -204,14 +206,17 @@ fun SabhaTimeTableScreen(
                                         if (sabhaTitleEn.isNotBlank()) {
                                             isTranslating = true
                                             scope.launch {
-                                                val translations = AIService.translateToAll(sabhaTitleEn)
+                                                val translations = AIService.getTranslatedText(sabhaTitleEn, preferenceManager)
                                                 sabhaTitleGu = translations["gu"] ?: ""
                                                 sabhaTitleHi = translations["hi"] ?: ""
                                                 isTranslating = false
                                             }
                                         }
                                     }) {
-                                        Icon(Icons.Default.Translate, contentDescription = "Auto Translate")
+                                        Icon(
+                                            imageVector = if (translationMethod == "smart") Icons.Default.Translate else Icons.Default.Spellcheck,
+                                            contentDescription = "Auto Translate"
+                                        )
                                     }
                                 }
                             }
@@ -228,11 +233,47 @@ fun SabhaTimeTableScreen(
                             label = { Text("हिन्दी (Hindi)") },
                             modifier = Modifier.fillMaxWidth()
                         )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Action Button with dynamic label
+                        Button(
+                            onClick = {
+                                if (sabhaTitleEn.isNotBlank()) {
+                                    isTranslating = true
+                                    scope.launch {
+                                        val translations = AIService.getTranslatedText(sabhaTitleEn, preferenceManager)
+                                        sabhaTitleGu = translations["gu"] ?: ""
+                                        sabhaTitleHi = translations["hi"] ?: ""
+                                        isTranslating = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                            enabled = !isTranslating
+                        ) {
+                            Icon(
+                                imageVector = if (translationMethod == "smart") Icons.Default.Translate else Icons.Default.Spellcheck,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (translationMethod == "smart") "Smart Translate" else "Lipi Transliterate",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 },
                 confirmButton = {
                     Button(onClick = {
-                        val finalTitle = if (sabhaTitleGu.isNotBlank()) sabhaTitleGu else sabhaTitleEn
+                        val lang = preferenceManager.getLanguage()
+                        val finalTitle = when(lang) {
+                            "gu" -> if (sabhaTitleGu.isNotBlank()) sabhaTitleGu else sabhaTitleEn
+                            "hi" -> if (sabhaTitleHi.isNotBlank()) sabhaTitleHi else sabhaTitleEn
+                            else -> sabhaTitleEn
+                        }
                         if (finalTitle.isNotBlank()) {
                             driveViewModel.postYouTubeLink(context, finalTitle, "text_update", "sabha_timetable")
                             showAddDialog = false

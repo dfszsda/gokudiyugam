@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,12 +46,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun KirtanScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: (String) -> Unit,
+    onNavigateToPlaylists: () -> Unit,
     kirtanViewModel: KirtanViewModel = viewModel(),
     driveViewModel: DriveViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance("mediadata")
-    val preferenceManager = remember { PreferenceManager(context) }
     
     // Screen-specific permission logic
     var canEdit by remember { mutableStateOf(false) }
@@ -83,11 +84,14 @@ fun KirtanScreen(
     var selectedAudioName by remember { mutableStateOf("No file selected") }
 
     val staticCategories = listOf(
-        "Arati", "Thal", "Dhun", "Prathana", "Bhajan", "Puja Vidhi", "Others", "Favorite", "All Kirtans"
+        "Arati", "Thal", "Dhun", "Prathana", "Bhajan", "Puja Vidhi", "Others"
     )
     
-    // Combined categories: Static + Dynamic (from Firestore)
-    val allCategories = (staticCategories + kirtanViewModel.dynamicCategories).distinct()
+    // Combined categories: Static + Dynamic
+    val dynamicPlusStatic = (staticCategories + kirtanViewModel.dynamicCategories).distinct()
+    
+    // All Kirtans at the top
+    val allCategories = listOf("All Kirtans") + dynamicPlusStatic
     
     val filteredCategories = if (searchQuery.isEmpty()) {
         allCategories
@@ -137,6 +141,9 @@ fun KirtanScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToPlaylists) {
+                        Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "My Playlists")
+                    }
                     if (userRole == UserRole.HOST) {
                         IconButton(onClick = { showAddCategoryDialog = true }) {
                             Icon(Icons.Default.LibraryAdd, contentDescription = "Add Category")
@@ -186,7 +193,6 @@ fun KirtanScreen(
                 items(filteredCategories) { category ->
                     KirtanCategoryCard(
                         label = category,
-                        isFavorite = category == "Favorite",
                         isAll = category == "All Kirtans",
                         isDynamic = kirtanViewModel.dynamicCategories.contains(category),
                         canDelete = userRole == UserRole.HOST,
@@ -323,7 +329,6 @@ fun KirtanScreen(
 @Composable
 fun KirtanCategoryCard(
     label: String, 
-    isFavorite: Boolean = false,
     isAll: Boolean = false,
     isDynamic: Boolean = false,
     canDelete: Boolean = false,
@@ -343,7 +348,6 @@ fun KirtanCategoryCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
-                isFavorite -> Color(0xFFFFEBEE)
                 isAll -> Color(0xFFE3F2FD)
                 else -> MaterialTheme.colorScheme.surface
             }
@@ -353,13 +357,11 @@ fun KirtanCategoryCard(
         Column(modifier = Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Icon(
                 imageVector = when {
-                    isFavorite -> Icons.Default.Favorite
                     isAll -> Icons.Default.AllInclusive
                     else -> Icons.Default.MusicNote
                 },
                 contentDescription = null,
                 tint = when {
-                    isFavorite -> Color.Red
                     isAll -> Color(0xFF1976D2)
                     else -> MaterialTheme.colorScheme.primary
                 },

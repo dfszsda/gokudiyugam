@@ -34,7 +34,9 @@ import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
+import com.example.gokudiyugam.ai.AIService
 import com.example.gokudiyugam.model.User
+import com.example.gokudiyugam.model.UserRole
 import com.example.gokudiyugam.network.GoogleSheetsUploader
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -52,16 +54,24 @@ fun SettingsScreen(
     onNavigateToHelpFeedback: () -> Unit
 ) {
     val context = LocalContext.current
-    val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleScope = lifecycleOwner.lifecycleScope
     var currentLanguage by remember { mutableStateOf(preferenceManager.getLanguage()) }
+    var translationMethod by remember { mutableStateOf(preferenceManager.getTranslationMethod()) }
     var isDarkMode by remember { mutableStateOf(preferenceManager.isDarkMode()) }
     var selectedColor by remember { mutableIntStateOf(preferenceManager.getBackgroundColor()) }
     var defaultPlayer by remember { mutableStateOf(preferenceManager.getDefaultPlayer()) }
+    var preferredQuality by remember { mutableStateOf(preferenceManager.getPreferredVideoQuality()) }
     
     val auth = FirebaseAuth.getInstance()
     val db = remember { FirebaseFirestore.getInstance("mediadata") }
     val currentUser = auth.currentUser
     
+    // Model Status State
+    var isGuDownloaded by remember { mutableStateOf(false) }
+    var isHiDownloaded by remember { mutableStateOf(false) }
+    var isDownloading by remember { mutableStateOf<String?>(null) }
+
     // State for Profile Fields
     var firstName by remember { mutableStateOf("") }
     var middleName by remember { mutableStateOf("") }
@@ -71,30 +81,41 @@ fun SettingsScreen(
     var gender by remember { mutableStateOf("") }
     var email by remember { mutableStateOf(currentUser?.email ?: "") }
     var profilePhotoUrl by remember { mutableStateOf("") }
+    var userRole by remember { mutableStateOf<UserRole?>(null) }
     
     var isUpdating by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var isLoadingProfile by remember { mutableStateOf(true) }
 
-    // Date Picker State
+    // Dialog States
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-
-    // Password Reset Dialog States
     var showResetDialog by remember { mutableStateOf(false) }
+    var showColorPicker by remember { mutableStateOf(false) }
+    var showPlayerDialog by remember { mutableStateOf(false) }
+    var showQualityDialog by remember { mutableStateOf(false) }
+    var showTranslationDialog by remember { mutableStateOf(false) }
+    var showLanguageMenu by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState()
     var resetEmail by remember { mutableStateOf("") }
     var isRequestingPassword by remember { mutableStateOf(false) }
-
-    // Color Picker Dialog
-    var showColorPicker by remember { mutableStateOf(false) }
     var hexColorInput by remember { mutableStateOf(String.format("#%06X", (0xFFFFFF and selectedColor))) }
 
-    // Player Selection Dialog
-    var showPlayerDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        AIService.isModelDownloaded("gu") { isGuDownloaded = it }
+        AIService.isModelDownloaded("hi") { isHiDownloaded = it }
+    }
 
     LaunchedEffect(currentUser?.uid) {
         val uid = currentUser?.uid
         if (uid != null) {
+            db.collection("users").document(uid).get().addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    val roleStr = doc.getString("role") ?: "NORMAL"
+                    userRole = try { UserRole.valueOf(roleStr) } catch(e: Exception) { UserRole.NORMAL }
+                }
+            }
+
             db.collection("profile").document(uid).addSnapshotListener { doc, _ ->
                 if (doc != null && doc.exists()) {
                     val user = doc.toObject(User::class.java)
@@ -132,12 +153,12 @@ fun SettingsScreen(
                     }
                     showDatePicker = false
                 }) {
-                    Text("OK")
+                    Text(stringResource(R.string.ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         ) {
@@ -145,18 +166,19 @@ fun SettingsScreen(
         }
     }
 
+    // Reset Password Dialog
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Request Password Reset") },
+            title = { Text(stringResource(R.string.request_password_reset)) },
             text = {
                 Column {
-                    Text("Enter your registered email address to send a request to Admin.", fontSize = 14.sp)
+                    Text(stringResource(R.string.enter_registered_email), fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = resetEmail,
                         onValueChange = { resetEmail = it },
-                        label = { Text("Email Address") },
+                        label = { Text(stringResource(R.string.email)) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true
@@ -209,13 +231,13 @@ fun SettingsScreen(
                     if (isRequestingPassword) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
                     } else {
-                        Text("Send Request")
+                        Text(stringResource(R.string.send_request))
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -224,7 +246,7 @@ fun SettingsScreen(
     if (showColorPicker) {
         AlertDialog(
             onDismissRequest = { showColorPicker = false },
-            title = { Text("Custom Background Color") },
+            title = { Text(stringResource(R.string.choose_bg_color)) },
             text = {
                 Column {
                     Text("Enter Hex Color Code (e.g., #FFFFFF):", style = MaterialTheme.typography.bodyMedium)
@@ -270,12 +292,12 @@ fun SettingsScreen(
                         Toast.makeText(context, "Invalid Color Code", Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Apply")
+                    Text(stringResource(R.string.ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showColorPicker = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -284,10 +306,10 @@ fun SettingsScreen(
     if (showPlayerDialog) {
         AlertDialog(
             onDismissRequest = { showPlayerDialog = false },
-            title = { Text("Select Default Video Player") },
+            title = { Text(stringResource(R.string.video_player_type)) },
             text = {
                 Column {
-                    listOf("ExoPlayer", "YouTube Player", "Auto (Hybrid)").forEach { player ->
+                    listOf("YouTube Player", "ExoPlayer", "Auto (Hybrid)").forEach { player ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -309,7 +331,75 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showPlayerDialog = false }) {
-                    Text("Close")
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+    
+    if (showQualityDialog) {
+        AlertDialog(
+            onDismissRequest = { showQualityDialog = false },
+            title = { Text(stringResource(R.string.preferred_video_quality)) },
+            text = {
+                Column {
+                    listOf("Auto", "1080p", "720p", "480p", "360p", "240p", "144p").forEach { quality ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    preferredQuality = quality
+                                    preferenceManager.savePreferredVideoQuality(quality)
+                                    showQualityDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        ) {
+                            RadioButton(selected = preferredQuality == quality, onClick = null)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(quality)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showQualityDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showTranslationDialog) {
+        AlertDialog(
+            onDismissRequest = { showTranslationDialog = false },
+            title = { Text("Translation Method (Host Only)") },
+            text = {
+                Column {
+                    listOf("smart" to "Smart Translation (Google)", "mapping" to "Lipi-Antar (Barakhadi)").forEach { (method, label) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    translationMethod = method
+                                    preferenceManager.saveTranslationMethod(method)
+                                    showTranslationDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        ) {
+                            RadioButton(selected = translationMethod == method, onClick = null)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(label)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showTranslationDialog = false }) {
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -339,9 +429,10 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            Text("Profile Information", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.profile_information), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Profile Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -375,7 +466,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         
                         Text(
-                            text = if (firstName.isNotEmpty()) "$firstName $lastName" else "User Profile",
+                            text = if (firstName.isNotEmpty()) "$firstName $lastName" else stringResource(R.string.guest_user),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -397,7 +488,7 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Edit Profile", fontSize = 12.sp)
+                                Text(stringResource(R.string.edit_profile), fontSize = 12.sp)
                             }
                             
                             Button(
@@ -412,7 +503,7 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Default.LockReset, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Reset Password", fontSize = 11.sp)
+                                Text(stringResource(R.string.reset_password), fontSize = 11.sp)
                             }
                         }
                     }
@@ -449,7 +540,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = email,
                             onValueChange = { },
-                            label = { Text("Email") },
+                            label = { Text(stringResource(R.string.email)) },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             shape = RoundedCornerShape(12.dp),
@@ -506,7 +597,7 @@ fun SettingsScreen(
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.cancel))
                             }
                             
                             Button(
@@ -535,7 +626,6 @@ fun SettingsScreen(
                                                     val currentUname = preferenceManager.getCurrentUsername()
                                                     val role = currentUname?.let { preferenceManager.getUserRoleForAccount(it).name } ?: "NORMAL"
                                                     
-                                                    // Point 2 Fix: Removed password parameter as per GoogleSheetsUploader update
                                                     GoogleSheetsUploader.uploadUserData(
                                                         firstName = firstName,
                                                         middleName = middleName,
@@ -566,7 +656,7 @@ fun SettingsScreen(
                                         color = MaterialTheme.colorScheme.onPrimary
                                     )
                                 } else {
-                                    Text("Save Changes")
+                                    Text(stringResource(R.string.save_changes))
                                 }
                             }
                         }
@@ -576,32 +666,127 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             
-            Text("App Preferences", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.app_preferences), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            SettingsItem(
-                title = stringResource(R.string.language),
-                subtitle = when(currentLanguage) {
-                    "gu" -> "ગુજરાતી"
-                    "hi" -> "હિન્દી"
-                    else -> "English"
-                },
-                icon = Icons.Default.Language,
-                onClick = {
-                    val nextLang = when(currentLanguage) {
-                        "en" -> "gu"
-                        "gu" -> "hi"
-                        else -> "en"
-                    }
-                    preferenceManager.saveLanguage(nextLang)
-                    currentLanguage = nextLang
-                    onRestartApp()
+            // Language Selection with Dropdown and Model Downloads
+            Box {
+                SettingsItem(
+                    title = stringResource(R.string.language),
+                    subtitle = when(currentLanguage) {
+                        "gu" -> "ગુજરાતી"
+                        "hi" -> "હિન્દી"
+                        else -> "English"
+                    },
+                    icon = Icons.Default.Language,
+                    onClick = { showLanguageMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showLanguageMenu,
+                    onDismissRequest = { showLanguageMenu = false },
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
+                    // English
+                    DropdownMenuItem(
+                        text = { Text("English") },
+                        onClick = { 
+                            currentLanguage = "en"
+                            preferenceManager.saveLanguage("en")
+                            showLanguageMenu = false
+                            onRestartApp()
+                        },
+                        trailingIcon = { if (currentLanguage == "en") Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary) }
+                    )
+                    
+                    // Gujarati
+                    DropdownMenuItem(
+                        text = { 
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("ગુજરાતી (Gujarati)")
+                                if (isDownloading == "gu") {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(start = 8.dp), strokeWidth = 2.dp)
+                                }
+                            }
+                        },
+                        onClick = { 
+                            currentLanguage = "gu"
+                            preferenceManager.saveLanguage("gu")
+                            showLanguageMenu = false
+                            onRestartApp()
+                        },
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isGuDownloaded) {
+                                    Icon(Icons.Default.CloudDone, "Downloaded", tint = Color(0xFF4CAF50))
+                                } else {
+                                    IconButton(onClick = {
+                                        isDownloading = "gu"
+                                        AIService.downloadModel("gu") { success ->
+                                            isDownloading = null
+                                            if (success) isGuDownloaded = true
+                                            Toast.makeText(context, if (success) "Gujarati Model Downloaded!" else "Download Failed", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }) {
+                                        Icon(Icons.Default.CloudDownload, "Download", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                                if (currentLanguage == "gu") Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    )
+                    
+                    // Hindi
+                    DropdownMenuItem(
+                        text = { 
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("હિન્દી (Hindi)")
+                                if (isDownloading == "hi") {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(start = 8.dp), strokeWidth = 2.dp)
+                                }
+                            }
+                        },
+                        onClick = { 
+                            currentLanguage = "hi"
+                            preferenceManager.saveLanguage("hi")
+                            showLanguageMenu = false
+                            onRestartApp()
+                        },
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isHiDownloaded) {
+                                    Icon(Icons.Default.CloudDone, "Downloaded", tint = Color(0xFF4CAF50))
+                                } else {
+                                    IconButton(onClick = {
+                                        isDownloading = "hi"
+                                        AIService.downloadModel("hi") { success ->
+                                            isDownloading = null
+                                            if (success) isHiDownloaded = true
+                                            Toast.makeText(context, if (success) "Hindi Model Downloaded!" else "Download Failed", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }) {
+                                        Icon(Icons.Default.CloudDownload, "Download", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                                if (currentLanguage == "hi") Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    )
                 }
-            )
+            }
+
+            // Translation Method Setting (Only for Host/Sub-Host)
+            if (userRole == UserRole.HOST || userRole == UserRole.SUB_HOST) {
+                SettingsItem(
+                    title = "Translation Method",
+                    subtitle = if (translationMethod == "smart") "Smart Translation (Google)" else "Lipi-Antar (Barakhadi)",
+                    icon = Icons.Default.Translate,
+                    onClick = { showTranslationDialog = true }
+                )
+            }
 
             SettingsItem(
                 title = stringResource(R.string.dark_mode),
-                subtitle = if (isDarkMode) "On" else "Off",
+                subtitle = if (isDarkMode) stringResource(R.string.dark_mode_on) else stringResource(R.string.dark_mode_off),
                 icon = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
                 trailing = {
                     Switch(checked = isDarkMode, onCheckedChange = {
@@ -630,19 +815,26 @@ fun SettingsScreen(
             )
 
             SettingsItem(
-                title = "Video Player Type",
+                title = stringResource(R.string.video_player_type),
                 subtitle = defaultPlayer,
                 icon = Icons.Default.VideoLibrary,
                 onClick = { showPlayerDialog = true }
             )
             
+            SettingsItem(
+                title = stringResource(R.string.preferred_video_quality),
+                subtitle = preferredQuality,
+                icon = Icons.Default.HighQuality,
+                onClick = { showQualityDialog = true }
+            )
+            
             Spacer(modifier = Modifier.height(16.dp))
             
-            Text("Other", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.other), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             
             SettingsItem(
-                title = "About App",
-                subtitle = "Version 1.9.0",
+                title = stringResource(R.string.about_app),
+                subtitle = stringResource(R.string.version),
                 icon = Icons.Default.Info,
                 onClick = {
                     Toast.makeText(context, "Gokudiyugam - Spiritual Journey", Toast.LENGTH_SHORT).show()
@@ -650,8 +842,8 @@ fun SettingsScreen(
             )
             
             SettingsItem(
-                title = "Help & Feedback",
-                subtitle = "Contact support for any issues",
+                title = stringResource(R.string.help_feedback),
+                subtitle = stringResource(R.string.contact_support),
                 icon = Icons.AutoMirrored.Filled.Help,
                 onClick = onNavigateToHelpFeedback
             )

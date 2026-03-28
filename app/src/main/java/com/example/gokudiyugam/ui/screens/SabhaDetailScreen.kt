@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Spellcheck
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,9 +55,6 @@ fun SabhaDetailScreen(
     val canEdit = isHost || 
                  (currentUserRole == UserRole.SUB_HOST && preferenceManager.hasPermission(currentUsername, "screen_sabha_timetable"))
 
-    var isAiVerified by remember { mutableStateOf(false) }
-    var showAiVerification by remember { mutableStateOf(true) }
-
     // State for data
     val mandals = remember { mutableStateListOf<String>().apply { addAll(preferenceManager.getMandals()) } }
     val sabhaList = listOf(
@@ -69,15 +67,21 @@ fun SabhaDetailScreen(
     var selectedSabha by remember { mutableStateOf(if (sabhaList.contains(sabhaName)) sabhaName else sabhaList.first()) }
     var selectedLanguage by remember { mutableStateOf("English") }
     
-    var inputTopicName by remember { mutableStateOf("") }
-    var inputMemberName by remember { mutableStateOf("") }
+    var inputTopicNameEn by remember { mutableStateOf("") }
+    var inputMemberNameEn by remember { mutableStateOf("") }
+    
+    // Translation states
+    var inputTopicNameGu by remember { mutableStateOf("") }
+    var inputTopicNameHi by remember { mutableStateOf("") }
+    var inputMemberNameGu by remember { mutableStateOf("") }
+    var inputMemberNameHi by remember { mutableStateOf("") }
+    
+    var showTranslationFields by remember { mutableStateOf(false) }
     
     // AI Processing States
-    var showTranslationVerification by remember { mutableStateOf(false) }
     var isAiProcessing by remember { mutableStateOf(false) }
     var aiErrorMessage by remember { mutableStateOf<String?>(null) }
     
-    val pendingTopic = remember { mutableStateOf<SabhaTopic?>(null) }
     val meetingTopics = remember { mutableStateListOf<SabhaTopic>() }
 
     var showAddMandalDialog by remember { mutableStateOf(false) }
@@ -91,224 +95,264 @@ fun SabhaDetailScreen(
         meeting?.topics?.let { meetingTopics.addAll(it) }
     }
 
-    // AI Security check on launch
-    LaunchedEffect(Unit) {
-        delay(800)
-        isAiVerified = true
-        delay(400)
-        showAiVerification = false
-    }
-
     val backgroundColor = Color(0xFFFFCC80)
     val cardBackgroundColor = Color.White
     val innerBoxColor = Color(0xFFFDF2E9)
 
-    if (showAiVerification) {
-        SecurityScreen(isAiVerified)
-    } else if (showTranslationVerification && pendingTopic.value != null) {
-        TranslationVerificationScreen(
-            topic = pendingTopic.value!!,
-            onConfirm = { confirmedTopic: SabhaTopic ->
-                meetingTopics.add(confirmedTopic)
-                pendingTopic.value = null
-                showTranslationVerification = false
-                Toast.makeText(context, "Topic Added Successfully", Toast.LENGTH_SHORT).show()
-            },
-            onCancel = {
-                pendingTopic.value = null
-                showTranslationVerification = false
-            }
-        )
-    } else {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.sabha_schedule), fontWeight = FontWeight.ExtraBold) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.sabha_schedule), fontWeight = FontWeight.ExtraBold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    if (isHost && meetingTopics.isNotEmpty()) {
+                        IconButton(onClick = {
+                            meetingTopics.clear()
+                            val meetings = preferenceManager.getSabhaMeetings().toMutableList()
+                            meetings.removeAll { it.mandalName == selectedMandal && it.sabhaName == selectedSabha }
+                            preferenceManager.saveSabhaMeetings(meetings)
+                            Toast.makeText(context, "Sabha timetable cleared", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Clear All", tint = Color.Red)
                         }
-                    },
-                    actions = {
-                        if (isHost && meetingTopics.isNotEmpty()) {
-                            IconButton(onClick = {
-                                meetingTopics.clear()
-                                val meetings = preferenceManager.getSabhaMeetings().toMutableList()
-                                meetings.removeAll { it.mandalName == selectedMandal && it.sabhaName == selectedSabha }
-                                preferenceManager.saveSabhaMeetings(meetings)
-                                Toast.makeText(context, "Sabha timetable cleared", Toast.LENGTH_SHORT).show()
-                            }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Clear All", tint = Color.Red)
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = backgroundColor)
-                )
-            },
-            containerColor = backgroundColor
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = backgroundColor)
+            )
+        },
+        containerColor = backgroundColor
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            SelectionRow(
+                isHost = canEdit,
+                mandal = selectedMandal,
+                sabha = selectedSabha,
+                language = selectedLanguage,
+                mandals = mandals,
+                sabhas = sabhaList,
+                languages = languages,
+                onMandalChange = { selectedMandal = it },
+                onSabhaChange = { selectedSabha = it },
+                onLanguageChange = { selectedLanguage = it },
+                onAddMandal = { showAddMandalDialog = true }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                color = cardBackgroundColor,
+                shadowElevation = 8.dp
             ) {
-                SelectionRow(
-                    isHost = canEdit,
-                    mandal = selectedMandal,
-                    sabha = selectedSabha,
-                    language = selectedLanguage,
-                    mandals = mandals,
-                    sabhas = sabhaList,
-                    languages = languages,
-                    onMandalChange = { selectedMandal = it },
-                    onSabhaChange = { selectedSabha = it },
-                    onLanguageChange = { selectedLanguage = it },
-                    onAddMandal = { showAddMandalDialog = true }
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp),
-                    color = cardBackgroundColor,
-                    shadowElevation = 8.dp
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        if (canEdit) {
-                            Text(
-                                text = stringResource(R.string.add_topic), 
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            
-                            Spacer(modifier = Modifier.height(12.dp))
-                            
-                            OutlinedTextField(
-                                value = inputTopicName,
-                                onValueChange = { inputTopicName = it; aiErrorMessage = null },
-                                label = { Text(stringResource(R.string.topic_name)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                isError = aiErrorMessage != null
-                            )
-                            
-                            Spacer(modifier = Modifier.height(12.dp))
-                            
-                            OutlinedTextField(
-                                value = inputMemberName,
-                                onValueChange = { inputMemberName = it; aiErrorMessage = null },
-                                label = { Text(stringResource(R.string.enter_name)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                isError = aiErrorMessage != null
-                            )
-
-                            if (aiErrorMessage != null) {
-                                Text(
-                                    text = aiErrorMessage!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            if (isAiProcessing) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                                    Text("AI is filtering & translating...", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
-                                }
-                            } else {
-                                Button(
-                                    onClick = {
-                                        if (inputTopicName.isNotBlank() && inputMemberName.isNotBlank()) {
-                                            scope.launch {
-                                                isAiProcessing = true
-                                                // 1. Real Content Filtering
-                                                val isSafe = AIService.isContentSafe("$inputTopicName $inputMemberName")
-                                                
-                                                if (!isSafe) {
-                                                    aiErrorMessage = "Content flagged by AI Security as inappropriate."
-                                                    isAiProcessing = false
-                                                    return@launch
-                                                }
-
-                                                // 2. Dynamic Cloud Translation
-                                                val topicTranslations = AIService.translateToAll(inputTopicName)
-                                                val memberTranslations = AIService.translateToAll(inputMemberName)
-
-                                                pendingTopic.value = SabhaTopic(
-                                                    topicNameEn = topicTranslations["en"] ?: inputTopicName,
-                                                    topicNameGu = topicTranslations["gu"] ?: inputTopicName,
-                                                    topicNameHi = topicTranslations["hi"] ?: inputTopicName,
-                                                    memberNameEn = memberTranslations["en"] ?: inputMemberName,
-                                                    memberNameGu = memberTranslations["gu"] ?: inputMemberName,
-                                                    memberNameHi = memberTranslations["hi"] ?: inputMemberName
-                                                )
-                                                
-                                                inputTopicName = ""
-                                                inputMemberName = ""
-                                                isAiProcessing = false
-                                                showTranslationVerification = true
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(Icons.Default.Translate, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("AI Safe Translate & Add")
-                                }
-                            }
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp), thickness = 1.dp, color = Color.LightGray.copy(alpha = 0.5f))
-                        }
-
+                Column(modifier = Modifier.padding(20.dp)) {
+                    if (canEdit) {
                         Text(
-                            text = stringResource(R.string.meeting_details), 
+                            text = stringResource(R.string.add_topic), 
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                         
-                        MeetingTopicsList(
-                            sabha = selectedSabha, 
-                            mandal = selectedMandal, 
-                            language = selectedLanguage, 
-                            topics = meetingTopics, 
-                            bgColor = innerBoxColor,
-                            isHost = isHost,
-                            onDeleteTopic = { topic ->
-                                meetingTopics.remove(topic)
-                            }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        OutlinedTextField(
+                            value = inputTopicNameEn,
+                            onValueChange = { inputTopicNameEn = it; aiErrorMessage = null },
+                            label = { Text(stringResource(R.string.topic_name) + " (English)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            isError = aiErrorMessage != null
+                        )
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        OutlinedTextField(
+                            value = inputMemberNameEn,
+                            onValueChange = { inputMemberNameEn = it; aiErrorMessage = null },
+                            label = { Text(stringResource(R.string.enter_name) + " (English)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            isError = aiErrorMessage != null
                         )
 
-                        if (canEdit && meetingTopics.isNotEmpty()) {
-                            Button(
-                                onClick = {
-                                    val meetings = preferenceManager.getSabhaMeetings().toMutableList()
-                                    meetings.removeAll { it.mandalName == selectedMandal && it.sabhaName == selectedSabha }
-                                    meetings.add(SabhaMeeting(
-                                        mandalName = selectedMandal,
-                                        sabhaName = selectedSabha,
-                                        dateTime = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
-                                        topics = meetingTopics.toList()
-                                    ))
-                                    preferenceManager.saveSabhaMeetings(meetings)
-                                    Toast.makeText(context, "Meeting Saved in all languages", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        if (showTranslationFields) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Translations (Verify before adding):", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = inputTopicNameGu,
+                                onValueChange = { inputTopicNameGu = it },
+                                label = { Text("Topic (ગુજરાતી)") },
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(stringResource(R.string.save_meeting))
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = inputMemberNameGu,
+                                onValueChange = { inputMemberNameGu = it },
+                                label = { Text("Name (ગુજરાતી)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = inputTopicNameHi,
+                                onValueChange = { inputTopicNameHi = it },
+                                label = { Text("Topic (हिन्दी)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = inputMemberNameHi,
+                                onValueChange = { inputMemberNameHi = it },
+                                label = { Text("Name (हिन्दी)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+
+                        if (aiErrorMessage != null) {
+                            Text(
+                                text = aiErrorMessage!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        if (isAiProcessing) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                Text("Translating...", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
                             }
+                        } else {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (!showTranslationFields) {
+                                    Button(
+                                        onClick = {
+                                            if (inputTopicNameEn.isNotBlank() && inputMemberNameEn.isNotBlank()) {
+                                                scope.launch {
+                                                    isAiProcessing = true
+                                                    
+                                                    // Use Lipi (Mapping) for transliteration as requested
+                                                    inputTopicNameGu = AIService.translateByMapping(inputTopicNameEn, "gu")
+                                                    inputTopicNameHi = AIService.translateByMapping(inputTopicNameEn, "hi")
+                                                    inputMemberNameGu = AIService.translateByMapping(inputMemberNameEn, "gu")
+                                                    inputMemberNameHi = AIService.translateByMapping(inputMemberNameEn, "hi")
+                                                    
+                                                    showTranslationFields = true
+                                                    isAiProcessing = false
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(Icons.Default.Spellcheck, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Translate (Lipi)")
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            if (inputTopicNameEn.isNotBlank() && inputMemberNameEn.isNotBlank()) {
+                                                val newTopic = SabhaTopic(
+                                                    topicNameEn = inputTopicNameEn,
+                                                    topicNameGu = inputTopicNameGu.ifBlank { inputTopicNameEn },
+                                                    topicNameHi = inputTopicNameHi.ifBlank { inputTopicNameEn },
+                                                    memberNameEn = inputMemberNameEn,
+                                                    memberNameGu = inputMemberNameGu.ifBlank { inputMemberNameEn },
+                                                    memberNameHi = inputMemberNameHi.ifBlank { inputMemberNameEn }
+                                                )
+                                                
+                                                meetingTopics.add(newTopic)
+                                                
+                                                // Reset fields
+                                                inputTopicNameEn = ""; inputMemberNameEn = ""
+                                                inputTopicNameGu = ""; inputMemberNameGu = ""
+                                                inputTopicNameHi = ""; inputMemberNameHi = ""
+                                                showTranslationFields = false
+                                                
+                                                Toast.makeText(context, "Topic Added to List", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Add Topic")
+                                    }
+                                    
+                                    OutlinedButton(
+                                        onClick = { showTranslationFields = false },
+                                        modifier = Modifier.weight(0.5f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            }
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp), thickness = 1.dp, color = Color.LightGray.copy(alpha = 0.5f))
+                    }
+
+                    Text(
+                        text = stringResource(R.string.meeting_details), 
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    MeetingTopicsList(
+                        sabha = selectedSabha, 
+                        mandal = selectedMandal, 
+                        language = selectedLanguage, 
+                        topics = meetingTopics, 
+                        bgColor = innerBoxColor,
+                        isHost = isHost,
+                        onDeleteTopic = { topic ->
+                            meetingTopics.remove(topic)
+                        }
+                    )
+
+                    if (canEdit && meetingTopics.isNotEmpty()) {
+                        Button(
+                            onClick = {
+                                val meetings = preferenceManager.getSabhaMeetings().toMutableList()
+                                meetings.removeAll { it.mandalName == selectedMandal && it.sabhaName == selectedSabha }
+                                meetings.add(SabhaMeeting(
+                                    mandalName = selectedMandal,
+                                    sabhaName = selectedSabha,
+                                    dateTime = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
+                                    topics = meetingTopics.toList()
+                                ))
+                                preferenceManager.saveSabhaMeetings(meetings)
+                                Toast.makeText(context, "Meeting Saved Successfully", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(stringResource(R.string.save_meeting))
                         }
                     }
                 }
@@ -326,60 +370,6 @@ fun SabhaDetailScreen(
                 showAddMandalDialog = false
             }
         }, { showAddMandalDialog = false })
-    }
-}
-
-@Composable
-fun SecurityScreen(isAiVerified: Boolean) {
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFFCC80)), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Security, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = if (isAiVerified) "AI Security Active" else "Initializing AI Defense...", style = MaterialTheme.typography.headlineSmall)
-            if (!isAiVerified) {
-                Spacer(modifier = Modifier.height(16.dp))
-                CircularProgressIndicator()
-            }
-        }
-    }
-}
-
-@Composable
-fun TranslationVerificationScreen(
-    topic: SabhaTopic,
-    onConfirm: (SabhaTopic) -> Unit,
-    onCancel: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp).verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("AI Multi-Lang Verification", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Verify live AI translation for all BAPS regions.", textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 24.dp))
-        
-        LanguageBlock("English", topic.topicNameEn, topic.memberNameEn)
-        LanguageBlock("ગુજરાતી (Gujarati)", topic.topicNameGu, topic.memberNameGu)
-        LanguageBlock("हिंदी (Hindi)", topic.topicNameHi, topic.memberNameHi)
-
-        Spacer(modifier = Modifier.weight(1f))
-        
-        Button(onClick = { onConfirm(topic) }, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.confirm_and_upload))
-        }
-        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.cancel))
-        }
-    }
-}
-
-@Composable
-fun LanguageBlock(lang: String, topic: String, member: String) {
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(lang, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            Text("Topic: $topic")
-            Text("Member: $member")
-        }
     }
 }
 

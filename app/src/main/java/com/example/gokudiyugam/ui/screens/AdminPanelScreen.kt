@@ -43,8 +43,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import coil.compose.SubcomposeAsyncImage
 import com.example.gokudiyugam.PreferenceManager
+import com.example.gokudiyugam.drive.DriveHelper
 import com.example.gokudiyugam.model.UserRole
 import com.example.gokudiyugam.network.GoogleSheetsUploader
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -62,6 +65,7 @@ import java.util.concurrent.TimeUnit
 fun AdminPanelScreen(
     currentUserRole: UserRole?,
     preferenceManager: PreferenceManager,
+    googleAccount: GoogleSignInAccount?,
     onNavigateToMediaLibrary: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -93,6 +97,7 @@ fun AdminPanelScreen(
                             currentView == "overview" -> "Overview"
                             currentView == "home_slider" -> "Manage Home Slider"
                             currentView == "feedbacks" -> "Help & Feedback"
+                            currentView == "lyrics_management" -> "Manage Kirtan Lyrics"
                             else -> "Admin Panel"
                         }, 
                         fontWeight = FontWeight.Bold 
@@ -139,6 +144,7 @@ fun AdminPanelScreen(
                         onOverviewClick = { currentView = "overview" },
                         onHomeSliderClick = { currentView = "home_slider" },
                         onFeedbacksClick = { currentView = "feedbacks" },
+                        onLyricsManagementClick = { currentView = "lyrics_management" },
                         onMediaLibraryClick = onNavigateToMediaLibrary,
                         currentUserRole = currentUserRole,
                         userPermissions = userPermissions
@@ -152,10 +158,130 @@ fun AdminPanelScreen(
                     )
                 }
                 currentView == "password_requests" -> PasswordRequestsView()
-                currentView == "home_slider" -> HomeSliderManagementView(isHost || userPermissions.contains("Admin: Home Slider"))
+                currentView == "home_slider" -> HomeSliderManagementView(isHost || userPermissions.contains("Admin: Home Slider"), googleAccount)
                 currentView == "feedbacks" -> AdminFeedbacksView()
+                currentView == "lyrics_management" -> AdminLyricsManagementView()
             }
         }
+    }
+}
+
+@Composable
+fun AdminLyricsManagementView() {
+    val db = FirebaseFirestore.getInstance("mediadata")
+    val context = LocalContext.current
+    var allAudios by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Pending, 1: Added
+    var isLoading by remember { mutableStateOf(true) }
+    
+    var editingKirtan by remember { mutableStateOf<Map<String, Any>?>(null) }
+    var lyricsText by remember { mutableStateOf("") }
+
+    fun fetchAudios() {
+        isLoading = true
+        db.collection("mediadata")
+            .whereEqualTo("mediaType", "audio")
+            .get()
+            .addOnSuccessListener { result ->
+                allAudios = result.documents.map { doc ->
+                    val data = doc.data?.toMutableMap() ?: mutableMapOf()
+                    data["id"] = doc.id
+                    data
+                }
+                isLoading = false
+            }
+            .addOnFailureListener {
+                isLoading = false
+            }
+    }
+
+    LaunchedEffect(Unit) { fetchAudios() }
+
+    val filteredAudios = allAudios.filter { audio ->
+        val title = audio["title"] as? String ?: ""
+        val lyrics = audio["lyrics"] as? String ?: ""
+        val matchesSearch = title.lowercase().contains(searchQuery.lowercase())
+        val matchesTab = if (selectedTab == 0) lyrics.isBlank() else lyrics.isNotBlank()
+        matchesSearch && matchesTab
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            placeholder = { Text("Search Audio Title...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        TabRow(selectedTabIndex = selectedTab) {
+            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                Box(modifier = Modifier.padding(16.dp)) { Text("Pending Lyrics") }
+            }
+            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                Box(modifier = Modifier.padding(16.dp)) { Text("Added Lyrics") }
+            }
+        }
+
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
+                items(filteredAudios) { audio ->
+                    val title = audio["title"] as? String ?: "Untitled"
+                    val id = audio["id"] as? String ?: ""
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { 
+                            editingKirtan = audio
+                            lyricsText = audio["lyrics"] as? String ?: ""
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(text = title, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(20.dp), tint = Color.Gray)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (editingKirtan != null) {
+        AlertDialog(
+            onDismissRequest = { editingKirtan = null },
+            title = { Text("Edit Lyrics for ${editingKirtan!!["title"]}") },
+            text = {
+                OutlinedTextField(
+                    value = lyricsText,
+                    onValueChange = { lyricsText = it },
+                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    placeholder = { Text("Paste lyrics here...") },
+                    label = { Text("Lyrics (Gujarati/English)") }
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val id = editingKirtan!!["id"] as String
+                    db.collection("mediadata").document(id).update("lyrics", lyricsText)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Lyrics updated!", Toast.LENGTH_SHORT).show()
+                            fetchAudios()
+                            editingKirtan = null
+                        }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingKirtan = null }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -589,14 +715,20 @@ fun AdminFeedbacksView() {
 }
 
 @Composable
-fun HomeSliderManagementView(canEdit: Boolean) {
+fun HomeSliderManagementView(canEdit: Boolean, googleAccount: GoogleSignInAccount?) {
     val db = FirebaseFirestore.getInstance("mediadata")
     val storage = FirebaseStorage.getInstance()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
+    // Google Drive Integration
+    val driveFolderId = "1_nFilCWknua9FaoDTGQHcHldzDMvBgez"
+    val driveHelper = remember(googleAccount) { 
+        googleAccount?.let { DriveHelper(DriveHelper.getDriveService(context, it)) }
+    }
+    
     var imageUrl by remember { mutableStateOf("") }
-    var images by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    var images by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isUploading by remember { mutableStateOf(false) }
     var uploadError by remember { mutableStateOf<String?>(null) }
@@ -616,27 +748,44 @@ fun HomeSliderManagementView(canEdit: Boolean) {
     ) { uri: Uri? ->
         uri?.let {
             scope.launch {
+                if (driveHelper == null) {
+                    uploadError = "Please sign in with Google to upload to Drive"
+                    return@launch
+                }
                 isUploading = true
                 uploadError = null
                 try {
-                    val compressedData = withContext(Dispatchers.IO) {
+                    // Point: Post in Max Quality (Reduced compression to 100 or use original stream)
+                    val photoData = withContext(Dispatchers.IO) {
                         val inputStream = context.contentResolver.openInputStream(it)
                         val bitmap = BitmapFactory.decodeStream(inputStream)
                         val outputStream = ByteArrayOutputStream()
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
+                        // Changed from 70 to 100 for Maximum Quality
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
                         outputStream.toByteArray()
                     }
 
                     val fileName = "slider_${UUID.randomUUID()}.jpg"
-                    val ref = storage.reference.child("home_slider/$fileName")
                     
-                    val uploadTask = ref.putBytes(compressedData).await()
-                    val downloadUrl = uploadTask.storage.downloadUrl.await().toString()
-                    
-                    db.collection("home_images").add(mapOf("url" to downloadUrl, "timestamp" to System.currentTimeMillis())).await()
-                    
-                    fetchImages()
-                    Toast.makeText(context, "Photo uploaded successfully!", Toast.LENGTH_SHORT).show()
+                    val fileId = driveHelper.createFile(fileName, "image/jpeg", photoData.inputStream(), driveFolderId)
+                    if (fileId != null) {
+                        driveHelper.makeFilePublic(fileId)
+                        val (webContentLink, _) = driveHelper.getFileLinks(fileId)
+                        
+                        // Fallback to construction if link is null
+                        val downloadUrl = webContentLink ?: "https://drive.google.com/uc?id=$fileId&export=download"
+                        
+                        db.collection("home_images").add(mapOf(
+                            "url" to downloadUrl, 
+                            "driveFileId" to fileId,
+                            "timestamp" to System.currentTimeMillis()
+                        )).await()
+                        
+                        fetchImages()
+                        Toast.makeText(context, "Photo uploaded to Drive in Max Quality!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        uploadError = "Failed to upload to Google Drive"
+                    }
                 } catch (e: Exception) {
                     Log.e("AdminPanel", "Upload failed", e)
                     uploadError = "Upload failed: ${e.localizedMessage}"
@@ -649,10 +798,29 @@ fun HomeSliderManagementView(canEdit: Boolean) {
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         if (canEdit) {
-            Text("Add New Slider Image", fontWeight = FontWeight.Bold)
+            Text("Add New Slider Image (Max Quality)", fontWeight = FontWeight.Bold)
             
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Tip: Use horizontal photos (16:9) for the best look.", fontSize = 12.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Recommended Photo Size (Ratio 16:9):", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("• Pixels: 1280 x 720 px", fontSize = 12.sp)
+                    Text("• Inches: 13.33 x 7.5 in", fontSize = 12.sp)
+                    Text("• Centimeters: 33.87 x 19.05 cm", fontSize = 12.sp)
+                    Text("• Millimeters: 338.7 x 190.5 mm", fontSize = 12.sp)
+                    Text("• Points: 960 x 540 pt", fontSize = 12.sp)
+                    Text("• Picas: 80 x 45 pc", fontSize = 12.sp)
+                }
+            }
             
             // Error Display for Uploading
             if (uploadError != null) {
@@ -672,7 +840,7 @@ fun HomeSliderManagementView(canEdit: Boolean) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
@@ -714,7 +882,7 @@ fun HomeSliderManagementView(canEdit: Boolean) {
                 } else {
                     Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select & Upload Photo")
+                    Text("Select & Upload Photo (Max Quality)")
                 }
             }
 
@@ -729,7 +897,11 @@ fun HomeSliderManagementView(canEdit: Boolean) {
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(images) { (id, url) ->
+                items(images) { imageData ->
+                    val id = imageData["id"] as? String ?: ""
+                    val url = imageData["url"] as? String ?: ""
+                    val driveFileId = imageData["driveFileId"] as? String
+                    
                     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             SubcomposeAsyncImage(
@@ -749,13 +921,29 @@ fun HomeSliderManagementView(canEdit: Boolean) {
                             Text("ID: ${id.take(8)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                             if (canEdit) {
                                 IconButton(onClick = {
-                                    db.collection("home_images").document(id).delete()
-                                        .addOnSuccessListener { 
-                                            fetchImages()
-                                            if (url.contains("firebasestorage")) {
-                                                try { storage.getReferenceFromUrl(url).delete() } catch (e: Exception) {}
+                                    scope.launch {
+                                        try {
+                                            db.collection("home_images").document(id).delete().await()
+                                            
+                                            // Delete from Drive if driveFileId exists
+                                            if (driveFileId != null && driveHelper != null) {
+                                                withContext(Dispatchers.IO) {
+                                                    try {
+                                                        driveHelper.getDriveServiceDirect().files().delete(driveFileId).execute()
+                                                    } catch (e: Exception) {
+                                                        Log.e("AdminPanel", "Failed to delete from Drive", e)
+                                                    }
+                                                }
+                                            } else if (url.contains("firebasestorage")) {
+                                                try { storage.getReferenceFromUrl(url).delete().await() } catch (e: Exception) {}
                                             }
+                                            
+                                            fetchImages()
+                                            Toast.makeText(context, "Deleted successfully", Toast.LENGTH_SHORT).show()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Delete failed: ${e.message}", Toast.LENGTH_SHORT).show()
                                         }
+                                    }
                                 }) {
                                     Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
                                 }
@@ -768,11 +956,17 @@ fun HomeSliderManagementView(canEdit: Boolean) {
     }
 }
 
-private fun fetchImagesFromFirestore(db: FirebaseFirestore, onResult: (List<Pair<String, String>>) -> Unit) {
-    db.collection("home_images").get().addOnSuccessListener { result ->
-        val list = result.documents.map { it.id to (it.getString("url") ?: "") }
-        onResult(list)
-    }
+private fun fetchImagesFromFirestore(db: FirebaseFirestore, onResult: (List<Map<String, Any>>) -> Unit) {
+    db.collection("home_images")
+        .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        .get().addOnSuccessListener { result ->
+            val list = result.documents.map { doc ->
+                val data = doc.data?.toMutableMap() ?: mutableMapOf()
+                data["id"] = doc.id
+                data
+            }
+            onResult(list)
+        }
 }
 
 @Composable
@@ -872,6 +1066,7 @@ fun AdminMainMenuView(
     onOverviewClick: () -> Unit,
     onHomeSliderClick: () -> Unit,
     onFeedbacksClick: () -> Unit,
+    onLyricsManagementClick: () -> Unit,
     onMediaLibraryClick: () -> Unit, 
     currentUserRole: UserRole?,
     userPermissions: List<String> = emptyList()
@@ -903,6 +1098,14 @@ fun AdminMainMenuView(
                 onClick = onHomeSliderClick
             )
         }
+
+        // Manage Lyrics - Visible to Host/Sub-Host
+        AdminMenuCard(
+            title = "Manage Lyrics",
+            icon = Icons.Default.Notes,
+            description = "Add or edit Kirtan lyrics",
+            onClick = onLyricsManagementClick
+        )
 
         // Accounts - Only Host OR Sub-Host with permission
         if (isHost || (isSubHost && userPermissions.contains("Admin: Accounts"))) {

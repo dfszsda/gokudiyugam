@@ -21,6 +21,15 @@ class PreferenceManager(context: Context) {
         return sharedPreferences.getString("app_language", "en") ?: "en"
     }
 
+    // Translation Method: "smart" (ML Kit) or "mapping" (Barakhadi)
+    fun saveTranslationMethod(method: String) {
+        sharedPreferences.edit().putString("translation_method", method).apply()
+    }
+
+    fun getTranslationMethod(): String {
+        return sharedPreferences.getString("translation_method", "smart") ?: "smart"
+    }
+
     fun setDarkMode(isDarkMode: Boolean) {
         sharedPreferences.edit().putBoolean("dark_mode", isDarkMode).apply()
     }
@@ -60,7 +69,15 @@ class PreferenceManager(context: Context) {
     }
 
     fun getDefaultPlayer(): String {
-        return sharedPreferences.getString("default_video_player", "ExoPlayer") ?: "ExoPlayer"
+        return sharedPreferences.getString("default_video_player", "YouTube Player") ?: "YouTube Player"
+    }
+
+    fun savePreferredVideoQuality(quality: String) {
+        sharedPreferences.edit().putString("preferred_video_quality", quality).apply()
+    }
+
+    fun getPreferredVideoQuality(): String {
+        return sharedPreferences.getString("preferred_video_quality", "Auto") ?: "Auto"
     }
 
     // Point 1 Fix: Removed Password from storage
@@ -174,4 +191,13 @@ class PreferenceManager(context: Context) {
         return gson.fromJson(json, object : TypeToken<List<SabhaMeeting>>() {}.type)
     }
     fun saveSabhaMeetings(list: List<SabhaMeeting>) = sharedPreferences.edit().putString("sabha_meetings", gson.toJson(list)).apply()
+
+    // --- Birthday Preferences ---
+    fun saveLastBirthdayWishYear(year: Int) {
+        sharedPreferences.edit().putInt("last_birthday_wish_year", year).apply()
+    }
+
+    fun getLastBirthdayWishYear(): Int {
+        return sharedPreferences.getInt("last_birthday_wish_year", 0)
+    }
 }
