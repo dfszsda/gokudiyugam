@@ -1,31 +1,33 @@
-Gokudiyugam App - User Manual
-===============================
+Gokudiyugam App - User Manual (v1.9.2)
+======================================
 
 1. Introduction:
-   This app is designed for the BAPS Mandal (Badalpur) to manage spiritual activities, media, and schedules. It provides a platform for devotees to stay connected with daily darshan and mandal updates.
+   Gokudiyugam is the official digital companion for the BAPS Swaminarayan Mandal, Badalpur. This app provides devotees with seamless access to daily spiritual content and offers administrators powerful tools for mandal management.
 
 2. Getting Started:
-   - Login/Sign Up: Create an account using your email. Verify your email to access full features.
-   - Profile: Set up your name, mandal details, and contact information.
-   - Language: Choose your preferred language (English, Gujarati, or Hindi) from the settings or splash screen.
+   - Account Creation: Sign up with your email and verify it to unlock all features.
+   - Profile Setup: Personalize your profile with your name, contact details, and mandal affiliation.
+   - Language Preferences: Choose between English, Gujarati, and Hindi. You can switch languages anytime from the Settings or the Splash screen.
 
-3. Main Features:
-   - Home Screen: View the dynamic banner slider for featured announcements and events.
-   - Daily Darshan: View high-quality morning darshan photos from the mandal.
-   - Kirtan: Listen to a library of devotional songs with an integrated media player.
-   - Sabha Time Table: Stay updated with weekly sabha timings, locations, and special guest speakers.
-   - Functions & News: Browse upcoming festivals and read the latest "Satsang News" from Badalpur Mandal.
+3. Devotional Features:
+   - Home Dashboard: View the latest announcements and featured events through the dynamic image slider.
+   - Daily Darshan: Access high-resolution daily darshan photos from Badalpur Mandir.
+   - Kirtan & Media:
+     - Listen to a vast library of devotional kirtans with a professional background media player.
+     - Search for kirtan lyrics and create your own playlists.
+   - Video Gallery: Watch spiritual videos and discourses directly via the integrated YouTube player.
+   - Sabha Timetable: Check the schedules for Yuva, Bal, Mahila, and other sabhas, including topics and guest speakers.
+   - Satsang News & Newsletters: Stay updated with the latest happenings and "Sabha Saar" summaries.
 
-4. Admin Features (For Authorized Roles):
-   - Admin Panel: A secure area for managing the application.
-   - User Accounts: Monitor user activity, including "Online" status, last seen timestamps, and login device information.
-   - Role Management: Update user roles (Host, Sub-Host, Normal) and assign specific screen permissions.
-   - Password Requests: Review and manage user requests for password changes.
-   - Home Slider: Upload and update images for the main screen banner dynamically.
-   - Help & Feedback: View and respond to feedback submitted by users.
-   - Auto-Translate: Use the AI-powered "Translate" button to automatically generate content in Gujarati and Hindi.
+4. Admin & Host Features:
+   - Admin Panel: A dedicated hub for managing app content and user access.
+   - Advanced User Monitoring: Track user activity, including "Online" status, last seen timestamps, and login device details.
+   - Role & Permission Management: Assign roles (Host, Sub-Host, Normal) and grant specific screen-level permissions to team members.
+   - Home Slider Control: Upload, update, or remove banner images on the home screen in real-time.
+   - AI-Powered Translation: Admins can use the "Translate (Lipi)" button to automatically generate Gujarati and Hindi content for sabha topics and news.
+   - Help & Feedback: View and manage feedback submitted by devotees to improve mandal services.
 
-5. Security:
-   - Biometric Security: Enable Fingerprint or Face ID for faster and more secure access.
-   - AI Content Filtering: The app uses Google Gemini AI to ensure all posted content is safe and appropriate.
-   - Data Sync: User registration and role changes are automatically synced to a central administrative Google Sheet for record-keeping.
+5. Security & Privacy:
+   - Biometric Authentication: Enable Fingerprint or Face ID in settings for secure and instant access.
+   - Content Safety: All user-generated content is monitored using Google Gemini AI to maintain a respectful spiritual environment.
+   - Reliable Data Sync: Your profile and role data are securely synchronized with administrative Google Sheets for official record-keeping.

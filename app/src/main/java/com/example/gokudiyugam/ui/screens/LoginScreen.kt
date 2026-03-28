@@ -35,7 +35,7 @@ fun LoginScreen(
     onSignUpClick: () -> Unit,
     onEmailSignInClick: (String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit,
     onGuestLoginClick: ((Boolean) -> Unit, (String) -> Unit) -> Unit,
-    onGoogleSignInClick: () -> Unit
+    onGoogleSignInClick: ((Boolean) -> Unit, (String) -> Unit) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -244,16 +244,24 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             OutlinedButton(
-                                onClick = onGoogleSignInClick,
+                                onClick = {
+                                    isLoading = true
+                                    onGoogleSignInClick({ isLoading = it }, { errorMessage = it })
+                                },
                                 modifier = Modifier.weight(1f).height(56.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                enabled = !isLoading
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                                    Icon(imageVector = Icons.Default.AccountCircle, contentDescription = "Google Logo", tint = Color(0xFF4285F4))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Google", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                    if (isLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(imageVector = Icons.Default.AccountCircle, contentDescription = "Google Logo", tint = Color(0xFF4285F4))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Google", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                    }
                                 }
                             }
 
@@ -268,9 +276,13 @@ fun LoginScreen(
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                                    Icon(Icons.Default.Person, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Guest", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                    if (isLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.Default.Person, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Guest", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                    }
                                 }
                             }
                         }

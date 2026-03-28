@@ -93,6 +93,21 @@
     <string name="festivals">ઉત્સવો</string>
 
     <!-- Settings -->
+    <string name="profile_information">પ્રોફાઇલ માહિતી</string>
+    <string name="edit_profile">પ્રોફાઇલ એડિટ કરો</string>
+    <string name="reset_password">પાસવર્ડ રિસેટ કરો</string>
+    <string name="request_password_reset">પાસવર્ડ રિસેટની વિનંતી કરો</string>
+    <string name="enter_registered_email">એડમિનને વિનંતી મોકલવા માટે તમારું રજિસ્ટર્ડ ઈમેલ સરનામું દાખલ કરો.</string>
+    <string name="send_request">વિનંતી મોકલો</string>
+    <string name="app_preferences">એપ પસંદગીઓ</string>
+    <string name="dark_mode_on">ચાલુ</string>
+    <string name="dark_mode_off">બંધ</string>
+    <string name="video_player_type">વિડિયો પ્લેયર પ્રકાર</string>
+    <string name="preferred_video_quality">પસંદગીની વિડિયો ગુણવત્તા</string>
+    <string name="other">અન્ય</string>
+    <string name="about_app">એપ વિશે</string>
+    <string name="help_feedback">મદદ અને પ્રતિસાદ</string>
+    <string name="contact_support">કોઈપણ સમસ્યા માટે સપોર્ટનો સંપર્ક કરો</string>
     <string name="preview">પૂર્વાવલોકન</string>
     <string name="appearance">દેખાવ</string>
     <string name="dark_mode">ડાર્ક મોડ</string>
@@ -104,13 +119,14 @@
     <string name="update_password_desc">તમારો એકાઉન્ટ પાસવર્ડ અપડેટ કરો</string>
     <string name="language">ભાષા</string>
     <string name="app_language">એપ્લિકેશન ભાષા</string>
-    <string name="version">આવૃત્તિ 1.9.1</string>
+    <string name="version">આવૃત્તિ 1.9.2</string>
     <string name="choose_bg_color">પૃષ્ઠભૂમિ રંગ પસંદ કરો</string>
     <string name="old_password">જૂનો પાસવર્ડ</string>
     <string name="new_password">નવો પાસવર્ડ</string>
     <string name="confirm_new_password">નવા પાસવર્ડની પુષ્ટિ કરો</string>
     <string name="update">અપડેટ કરો</string>
     <string name="cancel">રદ કરો</string>
+    <string name="save_changes">ફેરફારો સેવ કરો</string>
     <string name="error_not_logged_in">લોગ ઇન નથી</string>
     <string name="error_incorrect_old_password">ખોટો જૂનો પાસવર્ડ</string>
     <string name="error_password_too_short">પાસવર્ડ ખૂબ ટૂંકો છે</string>

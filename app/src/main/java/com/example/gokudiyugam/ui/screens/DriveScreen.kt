@@ -3,6 +3,7 @@
 package com.example.gokudiyugam.ui.screens
 
 import android.app.Activity
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -151,6 +152,13 @@ fun DriveScreen(
             )
         }
     }
+}
+
+fun UploadDialog(
+    onDismiss: () -> Unit,
+    onUpload: (Uri, String, String) -> Unit,
+    onYouTubePost: (String, String) -> Unit
+) {
 }
 
 @Composable

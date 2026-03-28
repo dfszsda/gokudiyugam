@@ -8,6 +8,9 @@ import com.google.firebase.firestore.ServerTimestamp
 data class MediaItem(
     val id: String = "",
     val title: String = "",
+    val titleEn: String? = null,
+    val titleGu: String? = null,
+    val titleHi: String? = null,
     val url: String = "",
     val type: String = "", // "photo", "video", "audio", "doc", "sabha_timetable"
     val mediaType: String = "", // "photo", "video", "audio", "doc", "file"
@@ -15,5 +18,6 @@ data class MediaItem(
     val canDownload: Boolean = true,
     val expiryTimestamp: Long? = null, // New field for auto-delete
     @ServerTimestamp
-    val timestamp: Timestamp? = null
+    val timestamp: Timestamp? = null,
+    val lyrics: String? = null
 )

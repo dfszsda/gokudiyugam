@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,17 +36,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.gokudiyugam.PreferenceManager
 import com.example.gokudiyugam.R
+import com.example.gokudiyugam.model.User
 import com.example.gokudiyugam.model.UserRole
+import com.example.gokudiyugam.ui.components.BirthdayWishDialog
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun HomeScreen(
     currentUserRole: UserRole? = null,
     onNavigateToDailyDarshan: () -> Unit,
     onNavigateToKirtan: () -> Unit,
+    onNavigateToKirtanLyrics: () -> Unit,
     onNavigateToSabhaTimeTable: () -> Unit,
     onNavigateToFunctions: () -> Unit,
     onNavigateToSatsangNews: () -> Unit,
@@ -57,17 +66,68 @@ fun HomeScreen(
     onNavigateToGoogleDrive: () -> Unit,
     onNavigateToAdminPanel: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val preferenceManager = remember { PreferenceManager(context) }
     var showMenu by remember { mutableStateOf(false) }
     val db = FirebaseFirestore.getInstance("mediadata")
-    val homeImages = remember { mutableStateListOf<String>() }
+    var homeImages by remember { mutableStateOf<List<String>>(emptyList()) }
+    
+    // Birthday Logic State
+    var showBirthdayWish by remember { mutableStateOf(false) }
+    var userNameForWish by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        db.collection("home_images").addSnapshotListener { snapshot, _ ->
-            homeImages.clear()
-            snapshot?.documents?.forEach { doc ->
-                doc.getString("url")?.let { homeImages.add(it) }
+        db.collection("home_images")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                homeImages = snapshot?.documents?.mapNotNull { it.getString("url") } ?: emptyList()
+            }
+            
+        // Check for Birthday
+        val auth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
+        if (currentUser != null && !currentUser.isAnonymous) {
+            db.collection("profile").document(currentUser.uid).get().addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    val user = doc.toObject(User::class.java)
+                    val dob = user?.dob // Expected format "dd/MM/yyyy"
+                    val firstName = user?.firstName ?: ""
+                    
+                    if (!dob.isNullOrEmpty()) {
+                        try {
+                            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                            val birthDate = sdf.parse(dob)
+                            if (birthDate != null) {
+                                val calBirth = Calendar.getInstance().apply { time = birthDate }
+                                val calToday = Calendar.getInstance()
+                                
+                                val isSameDay = calBirth.get(Calendar.DAY_OF_MONTH) == calToday.get(Calendar.DAY_OF_MONTH)
+                                val isSameMonth = calBirth.get(Calendar.MONTH) == calToday.get(Calendar.MONTH)
+                                val currentYear = calToday.get(Calendar.YEAR)
+                                
+                                if (isSameDay && isSameMonth) {
+                                    val lastWishedYear = preferenceManager.getLastBirthdayWishYear()
+                                    if (lastWishedYear != currentYear) {
+                                        userNameForWish = firstName
+                                        showBirthdayWish = true
+                                        preferenceManager.saveLastBirthdayWishYear(currentYear)
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
             }
         }
+    }
+
+    if (showBirthdayWish) {
+        BirthdayWishDialog(
+            userName = userNameForWish,
+            onDismiss = { showBirthdayWish = false }
+        )
     }
 
     Scaffold(
@@ -76,7 +136,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = innerPadding.calculateBottomPadding()) // Using only bottom padding
+                .padding(bottom = innerPadding.calculateBottomPadding())
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -88,12 +148,12 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Image Slider Header (Integrated with Top Bar functionality)
+            // 1. Image Slider Header
             Box(modifier = Modifier.fillMaxWidth()) {
                 if (homeImages.isNotEmpty()) {
                     val pagerState = rememberPagerState(pageCount = { homeImages.size })
                     
-                    LaunchedEffect(Unit) {
+                    LaunchedEffect(homeImages.size) {
                         while (true) {
                             delay(5000)
                             if (homeImages.size > 1) {
@@ -107,7 +167,7 @@ fun HomeScreen(
                         state = pagerState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(16f / 9f) // 16:9 aspect ratio
+                            .aspectRatio(16f / 9f)
                     ) { page ->
                         AsyncImage(
                             model = homeImages[page],
@@ -126,7 +186,7 @@ fun HomeScreen(
                     )
                 }
 
-                // Top Bar Overlay (Gradient for visibility)
+                // Top Bar Overlay Gradient
                 Box(
                     modifier = Modifier
                         .matchParentSize()
@@ -144,37 +204,41 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            modifier = Modifier.size(42.dp),
-                            shape = CircleShape,
-                            color = Color.White,
-                            shadowElevation = 4.dp
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.icon),
-                                contentDescription = "App Logo",
-                                modifier = Modifier.padding(4.dp),
-                                contentScale = ContentScale.Inside
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.baps_mandal),
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                shadow = Shadow(
-                                    color = Color.Black,
-                                    offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                                    blurRadius = 8f
+                    // Hide Logo and Title if slider has images, as requested
+                    if (homeImages.isEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                modifier = Modifier.size(42.dp),
+                                shape = CircleShape,
+                                color = Color.White,
+                                shadowElevation = 4.dp
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.icon),
+                                    contentDescription = "App Logo",
+                                    modifier = Modifier.padding(4.dp),
+                                    contentScale = ContentScale.Inside
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.baps_mandal),
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    shadow = Shadow(
+                                        color = Color.Black,
+                                        offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                                        blurRadius = 8f
+                                    )
                                 )
                             )
-                        )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.weight(1f))
 
                     Box {
                         IconButton(
@@ -300,6 +364,14 @@ fun HomeScreen(
                         icon = Icons.Default.MusicNote,
                         description = stringResource(R.string.devotional_songs),
                         onClick = onNavigateToKirtan
+                    )
+                }
+                item { 
+                    FeatureCard(
+                        title = "Kirtan Lyrics",
+                        icon = Icons.AutoMirrored.Filled.Notes,
+                        description = "Search & View Lyrics",
+                        onClick = onNavigateToKirtanLyrics
                     )
                 }
                 item { 

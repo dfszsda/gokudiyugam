@@ -58,18 +58,20 @@ fun VideoPlayerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val preferenceManager = remember { PreferenceManager(context) }
     val activity = context as ComponentActivity
     val window = activity.window
     val lifecycleOwner = LocalLifecycleOwner.current
     
-    // Determine which player to use based on URL
+    // Use YouTube player if preference is YouTube Player or if it's a YouTube URL
+    val playerPref = preferenceManager.getDefaultPlayer()
     val isYoutubeUrl = url.contains("youtube.com", ignoreCase = true) || 
                        url.contains("youtu.be", ignoreCase = true)
     
     val isDriveUrl = url.contains("drive.google.com")
     
-    // Always use YouTube player for YouTube links
-    val useYoutubePlayer = isYoutubeUrl
+    // Always use YouTube player if preference is set or it's a YouTube link
+    val useYoutubePlayer = playerPref == "YouTube Player" || isYoutubeUrl
 
     // Convert Google Drive link to direct link for ExoPlayer
     val finalUrl = remember(url) { convertDriveUrlToDirectLink(url) }
@@ -78,6 +80,16 @@ fun VideoPlayerScreen(
         ExoPlayer.Builder(context).build().apply {
             val mediaItem = MediaItem.fromUri(finalUrl)
             setMediaItem(mediaItem)
+            
+            // Apply saved quality preference on startup
+            val preferredQuality = preferenceManager.getPreferredVideoQuality()
+            if (preferredQuality != "Auto") {
+                val height = preferredQuality.replace("p", "").toIntOrNull() ?: Int.MAX_VALUE
+                trackSelectionParameters = trackSelectionParameters.buildUpon()
+                    .setMaxVideoSize(Int.MAX_VALUE, height)
+                    .build()
+            }
+            
             prepare()
             playWhenReady = true
         }
@@ -92,7 +104,7 @@ fun VideoPlayerScreen(
     // Quality States
     var showQualityDialog by remember { mutableStateOf(false) }
     var availableQualities by remember { mutableStateOf(listOf("Auto")) }
-    var selectedQuality by remember { mutableStateOf("Auto") }
+    var selectedQuality by remember { mutableStateOf(preferenceManager.getPreferredVideoQuality()) }
 
     // ExoPlayer Track Listener
     LaunchedEffect(exoPlayer) {
@@ -379,6 +391,7 @@ fun VideoPlayerScreen(
                                         selected = (quality == selectedQuality),
                                         onClick = {
                                             selectedQuality = quality
+                                            preferenceManager.savePreferredVideoQuality(quality)
                                             if (useYoutubePlayer) {
                                                 // Note: Mobile YouTube iframe API has limited support for manual quality selection
                                             } else {

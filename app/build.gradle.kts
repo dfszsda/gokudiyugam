@@ -18,7 +18,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.9.1"
+        versionName = "1.9.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -107,6 +107,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.config)
+    implementation(libs.firebase.messaging)
 
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
@@ -142,6 +143,9 @@ dependencies {
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
     implementation("com.google.android.gms:play-services-auth:21.5.1")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+
+    // Google ML Kit Translation
+    implementation("com.google.mlkit:translate:17.0.3")
 
     // Google Drive API
     implementation("com.google.apis:google-api-services-drive:v3-rev20240521-2.0.0")

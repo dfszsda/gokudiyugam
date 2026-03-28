@@ -7,8 +7,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -74,7 +73,6 @@ fun MediaDataScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             Column {
-                // Filter Chips
                 ScrollableTabRow(
                     selectedTabIndex = types.indexOf(selectedType),
                     edgePadding = 16.dp,
@@ -107,17 +105,13 @@ fun MediaDataScreen(
                 }
             }
 
-            // Modern Upload Progress Overlay
             AnimatedVisibility(
                 visible = viewModel.isUploading,
                 enter = fadeIn() + slideInVertically(),
                 exit = fadeOut() + slideOutVertically()
             ) {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(16.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     shadowElevation = 8.dp
@@ -132,9 +126,7 @@ fun MediaDataScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(text = viewModel.uploadStatus, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
-                        
                         Spacer(modifier = Modifier.height(12.dp))
-                        
                         LinearProgressIndicator(
                             progress = { viewModel.uploadProgress },
                             modifier = Modifier.fillMaxWidth().height(8.dp),
@@ -149,8 +141,8 @@ fun MediaDataScreen(
         if (showUploadDialog) {
             UploadDialog(
                 onDismiss = { showUploadDialog = false },
-                onUpload = { uri, title, type ->
-                    viewModel.uploadFile(uri, title, type)
+                onUpload = { uri, title, type, lyrics ->
+                    viewModel.uploadFile(uri, title, type, lyrics)
                     showUploadDialog = false
                 },
                 onYouTubePost = { title, url ->
@@ -230,12 +222,6 @@ fun MediaCard(
                         modifier = Modifier.fillMaxWidth().height(200.dp)
                     )
                 }
-                Text(
-                    text = "Video Content",
-                    color = Color.Red,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
             }
             
             Row(
@@ -247,7 +233,6 @@ fun MediaCard(
                     Text(text = item.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
                     Text(text = "Type: ${item.type.replace("_", " ")}", style = MaterialTheme.typography.bodySmall)
                 }
-                
                 Row {
                     if (canManage) {
                         IconButton(onClick = onRepostClick) {
@@ -277,10 +262,7 @@ fun RepostDialog(onDismiss: () -> Unit, onRepost: (String) -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
                 categories.forEach { category ->
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedCategory = category }
-                            .padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth().clickable { selectedCategory = category }.padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = selectedCategory == category, onClick = { selectedCategory = category })
@@ -303,13 +285,14 @@ fun RepostDialog(onDismiss: () -> Unit, onRepost: (String) -> Unit) {
 @Composable
 fun UploadDialog(
     onDismiss: () -> Unit, 
-    onUpload: (Uri, String, String) -> Unit,
+    onUpload: (Uri, String, String, String?) -> Unit,
     onYouTubePost: (String, String) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("photo") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
     var youtubeUrl by remember { mutableStateOf("") }
+    var lyrics by remember { mutableStateOf("") }
     
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         selectedUri = uri
@@ -319,13 +302,8 @@ fun UploadDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Media") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title, 
-                    onValueChange = { title = it }, 
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
                 
                 Text("Select Type:")
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -340,36 +318,33 @@ fun UploadDialog(
                 }
                 
                 if (selectedType == "youtube") {
-                    OutlinedTextField(
-                        value = youtubeUrl, 
-                        onValueChange = { youtubeUrl = it }, 
-                        label = { Text("YouTube Link") },
-                        placeholder = { Text("https://www.youtube.com/watch?v=...") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    OutlinedTextField(value = youtubeUrl, onValueChange = { youtubeUrl = it }, label = { Text("YouTube Link") }, modifier = Modifier.fillMaxWidth())
                 } else {
-                    Button(
-                        onClick = { launcher.launch(when(selectedType) {
-                            "photo" -> "image/*"
-                            "video" -> "video/*"
-                            "audio" -> "audio/*"
-                            else -> "*/*"
-                        }) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Button(onClick = { launcher.launch(when(selectedType) {
+                        "photo" -> "image/*"
+                        "video" -> "video/*"
+                        "audio" -> "audio/*"
+                        else -> "*/*"
+                    }) }, modifier = Modifier.fillMaxWidth()) {
                         Text(if (selectedUri == null) "Choose File" else "File Selected")
                     }
+                }
+
+                if (selectedType == "audio") {
+                    OutlinedTextField(
+                        value = lyrics, 
+                        onValueChange = { lyrics = it }, 
+                        label = { Text("Lyrics (Optional)") }, 
+                        modifier = Modifier.fillMaxWidth().height(120.dp)
+                    )
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = { 
-                    if (selectedType == "youtube") {
-                        onYouTubePost(title, youtubeUrl)
-                    } else {
-                        selectedUri?.let { onUpload(it, title, selectedType) }
-                    }
+                    if (selectedType == "youtube") onYouTubePost(title, youtubeUrl)
+                    else selectedUri?.let { onUpload(it, title, selectedType, if (lyrics.isNotBlank()) lyrics else null) }
                 },
                 enabled = title.isNotEmpty() && (selectedUri != null || (selectedType == "youtube" && youtubeUrl.isNotEmpty()))
             ) {

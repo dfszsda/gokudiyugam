@@ -161,10 +161,10 @@ fun AudiosGalleryPage(
     val isFetching = driveViewModel.isFetching
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val errorMessage = kirtanViewModel.errorMessage
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+    LaunchedEffect(kirtanViewModel.errorMessage) {
+        kirtanViewModel.errorMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            kirtanViewModel.errorMessage = null
         }
     }
 
@@ -176,7 +176,7 @@ fun AudiosGalleryPage(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(audios) { audioItem ->
+                items(items = audios, key = { it.id }) { audioItem ->
                     val kirtan = Kirtan(id = audioItem.id, title = audioItem.title, category = "audio", fileUri = audioItem.url)
                     Surface(
                         onClick = { 
@@ -248,7 +248,7 @@ fun PhotosGalleryPage(
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else {
             LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 128.dp), modifier = Modifier.fillMaxSize().padding(8.dp)) {
-                items(photos) { photoItem ->
+                items(items = photos, key = { it.id }) { photoItem ->
                     Image(
                         painter = rememberAsyncImagePainter(photoItem.url),
                         contentDescription = photoItem.title,
@@ -315,7 +315,7 @@ fun VideosGalleryPage(
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else {
             LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 128.dp), modifier = Modifier.fillMaxSize().padding(8.dp)) {
-                items(videos) { videoItem ->
+                items(items = videos, key = { it.id }) { videoItem ->
                     Card(modifier = Modifier.padding(4.dp).aspectRatio(1f).clickable { onNavigateToVideoPlayer(videoItem.title, videoItem.url) }) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) {
