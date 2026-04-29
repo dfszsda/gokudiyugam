@@ -3,241 +3,732 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gokudiyugam Admin Portal</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <title>Gokudiyugam - Official App</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Hind+Vadodara:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary-color: #6200EE; }
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
-        .navbar { background-color: var(--primary-color) !important; }
-        .admin-card { border: none; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); background: white; }
-        .hidden { display: none !important; }
-        .loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.95); display: flex; justify-content: center; align-items: center; z-index: 9999;
+        body { font-family: 'Poppins', 'Hind Vadodara', sans-serif; scroll-behavior: smooth; }
+        .hero-bg {
+            background-color: #6200ea;
+            position: relative;
         }
-        .list-group-item.active { background-color: var(--primary-color); border-color: var(--primary-color); }
-        .stat-circle {
-            width: 120px; height: 120px; border-radius: 50%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            margin: 0 auto 10px; border: 5px solid #eee;
-            background: white; transition: all 0.3s ease;
+        .hero-curve {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            overflow: hidden;
+            line-height: 0;
         }
-        .stat-circle h2 { margin: 0; font-size: 1.8rem; font-weight: 800; }
-        .circle-users { border-color: #6200EE; color: #6200EE; }
-        .circle-online { border-color: #28a745; color: #28a745; }
-        .circle-media { border-color: #ffc107; color: #ffc107; }
-        .circle-requests { border-color: #dc3545; color: #dc3545; }
-        .online-dot { width: 10px; height: 10px; background-color: #28a745; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .offline-dot { width: 10px; height: 10px; background-color: #dc3545; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .admin-section { padding: 20px 0; }
-        .app-logo { width: 40px; height: 40px; border-radius: 50%; margin-right: 12px; border: 2px solid white; }
-        .login-logo { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 20px; border: 3px solid #6200EE; }
+        .hero-curve svg {
+            position: relative;
+            display: block;
+            width: calc(100% + 1.3px);
+            height: 120px;
+        }
+        .hero-curve .shape-fill {
+            fill: #F9FAFB;
+        }
+        .feature-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+        }
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: #6200ea;
+        }
+        .install-step-number {
+            width: 32px;
+            height: 32px;
+            background-color: #6200ea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .visitor-badge {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        @keyframes jump {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .animate-jump {
+            animation: jump 3s infinite ease-in-out;
+        }
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            background: white;
+            color: #6200ea;
+            border-color: white;
+            font-weight: bold;
+        }
+        .phone-mockup {
+            border: 10px solid #111827;
+            border-radius: 3rem;
+            overflow: hidden;
+            background: #fff;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            aspect-ratio: 9/19;
+            width: 100%;
+        }
+        .phone-status-bar {
+            height: 24px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 600;
+            color: inherit;
+        }
+        .phone-top-bar {
+            height: 56px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .feature-card:hover .phone-mockup {
+            transform: scale(1.02);
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
-<body>
-    <div id="loader" class="loading-overlay hidden">
-        <div class="text-center">
-            <div class="spinner-border text-primary mb-2"></div>
-            <div class="fw-bold">Processing...</div>
-        </div>
+<body class="bg-gray-50 text-gray-900">
+
+    <div id="loading-overlay">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="navbar navbar-dark mb-4 hidden" id="main-nav">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="../app/src/main/res/drawable/icon.png" alt="Logo" class="app-logo">
-                <span>Gokudiyugam Admin</span>
-            </a>
-            <div class="d-flex align-items-center">
-                <span id="admin-name" class="text-light me-3 small"></span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
-            </div>
+    <!-- Language Switcher Header -->
+    <header class="absolute top-0 right-0 p-6 z-50">
+        <div class="flex gap-2">
+            <button onclick="setLanguage('en')" id="lang-en" class="lang-btn px-4 py-1.5 rounded-full text-white text-sm hover:bg-white/20 transition">English</button>
+            <button onclick="setLanguage('gu')" id="lang-gu" class="lang-btn px-4 py-1.5 rounded-full text-white text-sm hover:bg-white/20 transition">ગુજરાતી</button>
+            <button onclick="setLanguage('hi')" id="lang-hi" class="lang-btn px-4 py-1.5 rounded-full text-white text-sm hover:bg-white/20 transition">हिन्दी</button>
         </div>
-    </nav>
+    </header>
 
-    <!-- Login Screen -->
-    <div class="container" id="login-container">
-        <div class="card admin-card p-4 text-center mx-auto" style="max-width: 400px; margin-top: 100px;">
-            <img src="../app/src/main/res/drawable/icon.png" alt="Logo" class="login-logo mx-auto">
-            <h3 class="mb-4">Admin Login</h3>
-            <input type="email" id="admin-email" class="form-control mb-3" placeholder="Email">
-            <input type="password" id="admin-password" class="form-control mb-3" placeholder="Password">
-            <button class="btn btn-primary w-100 mb-2" onclick="login()">Login</button>
-            <p id="login-error" class="text-danger mt-3 small"></p>
-        </div>
-    </div>
-
-    <!-- Dashboard Content -->
-    <div class="container hidden" id="dashboard-container">
-        <div class="row g-4">
-            <div class="col-md-3">
-                <div class="list-group admin-card">
-                    <button class="list-group-item list-group-item-action active" id="btn-overview" onclick="showSection('overview')"><i class="bi bi-grid-fill me-2"></i>Overview</button>
-                    <button class="list-group-item list-group-item-action" id="btn-media" onclick="showSection('media')"><i class="bi bi-collection-play-fill me-2"></i>Media</button>
-                    <button class="list-group-item list-group-item-action" id="btn-users" onclick="showSection('users')"><i class="bi bi-people-fill me-2"></i>Users</button>
-                    <button class="list-group-item list-group-item-action" id="btn-app-status" onclick="showSection('app-status')"><i class="bi bi-toggles me-2"></i>Control</button>
+    <!-- Hero Section -->
+    <section class="hero-bg pt-24 pb-44 text-white text-center px-6 relative overflow-hidden">
+        <div class="max-w-4xl mx-auto relative z-10">
+            <!-- App Logo -->
+            <div class="mb-8 inline-block animate-jump">
+                <div class="w-32 h-32 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-4">
+                    <img src="logo.png" alt="Gokudiyugam Logo" class="w-full h-full object-contain" onerror="this.src='https://img.icons8.com/fluency/96/lotus.png';">
                 </div>
             </div>
 
-            <div class="col-md-9">
-                <div id="overview-section" class="admin-section">
-                    <div class="row g-3 text-center">
-                        <div class="col"><div class="stat-circle circle-users"><h2 id="count-users">0</h2></div><small class="fw-bold text-muted">Total Users</small></div>
-                        <div class="col"><div class="stat-circle circle-online"><h2 id="count-online">0</h2></div><small class="fw-bold text-muted">Online Now</small></div>
-                        <div class="col"><div class="stat-circle circle-media"><h2 id="count-media">0</h2></div><small class="fw-bold text-muted">Media Items</small></div>
-                    </div>
-                </div>
+            <h1 class="text-5xl md:text-6xl font-bold mb-4 tracking-tight">Gokudiyugam</h1>
+            <p id="hero_subtitle" class="text-xl md:text-2xl mb-10 opacity-90 font-light max-w-2xl mx-auto leading-relaxed" data-i18n="hero_subtitle">
+                The only app spreading divine memories of God and Saints. Download now and connect with spirituality.
+            </p>
 
-                <div id="users-section" class="admin-section hidden">
-                    <div class="card admin-card p-4">
-                        <div class="d-flex justify-content-between mb-3 align-items-center">
-                            <h4>User Management</h4>
-                            <input type="text" id="user-search" class="form-control w-50" placeholder="Search by email..." onkeyup="filterUsers()">
+            <div class="flex flex-col items-center gap-6">
+                <!-- Download Button -->
+                <a id="download_btn_link" href="#" class="bg-white text-[#6200ea] font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-2xl transition duration-300 transform hover:scale-105 flex items-center gap-3 text-lg group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span data-i18n="download_btn">Download APK</span>
+                </a>
+
+                <!-- Simplified Version Badge in Hero -->
+                <div class="flex items-center gap-4 text-sm opacity-80">
+                     <span id="version_label" class="bg-white/10 px-3 py-1 rounded-full border border-white/20">Version: ...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Curve Shape -->
+        <div class="hero-curve">
+            <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M600,112.77C268.63,112.77,0,65.52,0,7.23V120H1200V7.23C1200,65.52,931.37,112.77,600,112.77Z" class="shape-fill"></path>
+            </svg>
+        </div>
+    </section>
+
+    <!-- New Visitor & App Preview Section -->
+    <section class="py-16 bg-gray-50 overflow-hidden relative">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-12">
+                <!-- App Mockup 1: Splash/Logo Screen -->
+                <div class="hidden md:block w-64 transform -rotate-6 hover:rotate-0 transition-transform duration-500">
+                    <div class="phone-mockup">
+                        <div class="phone-status-bar text-gray-400">
+                            <span>9:41</span>
+                            <div class="flex gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                            </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead><tr><th>Status</th><th>User Email</th><th>Display Name</th><th>Role</th></tr></thead>
-                                <tbody id="users-table-body"></tbody>
-                            </table>
+                        <div class="h-full w-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-white to-purple-50">
+                            <img src="logo.png" class="w-24 h-24 object-contain mb-6 animate-pulse" alt="App Logo" onerror="this.src='https://img.icons8.com/fluency/96/lotus.png';">
+                            <div class="text-[#6200ea] font-extrabold text-xl tracking-wider">Gokudiyugam</div>
+                            <div class="mt-12 w-32 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="w-2/3 h-full bg-[#6200ea] rounded-full"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="media-section" class="admin-section hidden">
-                    <div class="card admin-card p-4">
-                        <div class="d-flex justify-content-between mb-3"><h4>All Media</h4></div>
-                        <table class="table"><tbody id="media-table-body"></tbody></table>
+                <!-- Central Counter UI -->
+                <div class="text-center z-10 px-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-6 border-4 border-[#6200ea]/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#6200ea]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-5xl font-extrabold text-[#6200ea] mb-2" id="counter">0</h3>
+                    <p class="text-gray-500 font-semibold tracking-widest uppercase text-xs" data-i18n="visitors">Visitors</p>
+                    <div class="mt-6 flex justify-center gap-2 items-center">
+                         <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                         <p class="text-[9px] text-green-600 font-bold tracking-widest">LIVE UPDATING</p>
+                    </div>
+                </div>
+
+                <!-- App Mockup 2: Home Screen -->
+                <div class="hidden md:block w-64 transform rotate-6 hover:rotate-0 transition-transform duration-500">
+                    <div class="phone-mockup">
+                        <div class="phone-status-bar bg-black/10 absolute top-0 left-0 right-0 z-20 text-white">
+                            <span>9:41</span>
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                        </div>
+                        <div class="h-full w-full bg-white flex flex-col">
+                            <!-- Slider Placeholder -->
+                            <div class="h-32 bg-[#6200ea] relative overflow-hidden">
+                                <img src="photo.jpeg" class="w-full h-full object-cover opacity-60" onerror="this.src='https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=400&q=80';">
+                                <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                                    <div class="w-1 h-1 bg-white rounded-full"></div>
+                                    <div class="w-1 h-1 bg-white/50 rounded-full"></div>
+                                    <div class="w-1 h-1 bg-white/50 rounded-full"></div>
+                                </div>
+                            </div>
+                            <!-- Home Content -->
+                            <div class="flex-1 p-3 space-y-4">
+                                <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                    <div class="h-2 w-20 bg-[#6200ea]/20 rounded mb-2"></div>
+                                    <div class="h-1.5 w-24 bg-gray-200 rounded"></div>
+                                </div>
+                                <div class="text-[10px] font-bold text-gray-800 px-1">Quick Services</div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="h-16 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center gap-1">
+                                        <div class="w-6 h-6 bg-purple-50 rounded-full"></div>
+                                        <div class="h-1 w-8 bg-gray-200 rounded"></div>
+                                    </div>
+                                    <div class="h-16 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center justify-center gap-1">
+                                        <div class="w-6 h-6 bg-purple-50 rounded-full"></div>
+                                        <div class="h-1 w-8 bg-gray-200 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- Features Section -->
+    <section class="py-24 px-6 max-w-7xl mx-auto">
+        <h2 class="text-4xl font-extrabold text-center mb-4 text-gray-900" data-i18n="features_title">App Features</h2>
+        <p class="text-center text-gray-500 mb-16 max-w-2xl mx-auto">Explore the divine features of Gokudiyugam app designed to keep you connected with spirituality every day.</p>
 
-    <script>
-        const config = {
-          apiKey: "AIzaSyBRWLPcr_2QOJe7FcUZkvscAXheHqBt1F0",
-          authDomain: "gokudiyugam.firebaseapp.com",
-          projectId: "gokudiyugam",
-          storageBucket: "gokudiyugam.firebasestorage.app",
-          messagingSenderId: "728177722635",
-          appId: "1:728177722635:web:633b40e207c597910ace0e"
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+            <!-- Feature 1: Daily Darshan -->
+            <div class="feature-card flex flex-col items-center">
+                <div class="phone-mockup mb-8">
+                    <!-- Status Bar -->
+                    <div class="phone-status-bar bg-[#6200ea] text-white">
+                        <span>9:41</span>
+                        <div class="flex gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M17.914 18.597l-1.28-1.28A10.97 10.97 0 0018 10c0-5.085-3.444-9.368-8.127-10.674a1 1 0 10-.535 1.928C13.296 2.246 16 5.807 16 10c0 1.925-.592 3.714-1.603 5.183l-1.281-1.281A8.966 8.966 0 0114 10c0-4.008-2.618-7.406-6.242-8.582a1 1 0 10-.62 1.902C9.535 4.13 12 6.776 12 10c0 .943-.146 1.85-.416 2.7l-1.281-1.281A6.974 6.974 0 0111 10c0-3.013-1.89-5.584-4.542-6.59a1 1 0 10-.715 1.868C7.143 5.8 8 7.8 8 10c0 .546-.065 1.077-.188 1.585l-1.19-1.19A5.048 5.048 0 017 10c0-1.811-1.04-3.376-2.55-4.147a1 1 0 00-.899 1.789C4.33 8.04 5 8.94 5 10c0 .243-.024.48-.07.71l-1.303-1.303A3.053 3.053 0 014 10c0-.853-.346-1.625-.907-2.187a1 1 0 10-1.414 1.414C2.093 9.64 2 9.813 2 10c0 2.828 2.343 5.172 5.172 8l.714.714a1 1 0 001.414-1.414l-.714-.714c-.215-.215-.403-.45-.563-.703l1.202 1.202c1.391 1.391 3.444 1.844 5.253 1.154l1.28 1.28a1 1 0 001.414-1.414z"></path></svg>
+                        </div>
+                    </div>
+                    <!-- App Bar -->
+                    <div class="phone-top-bar bg-[#6200ea] text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        <span class="font-bold text-lg">Daily Darshan</span>
+                    </div>
+                    <!-- Content -->
+                    <div class="p-0 bg-white h-full">
+                        <div class="bg-[#6200ea] px-6 pb-8 pt-2 rounded-b-[2rem]">
+                            <p class="text-[10px] text-white/80 leading-tight">Divine darshan and Mangala Aarti benefits from your favorite Mandir.</p>
+                        </div>
+                        <div class="p-4 -mt-6">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-white p-2 rounded-2xl shadow-md border border-gray-50 flex flex-col items-center">
+                                    <div class="w-full aspect-square bg-purple-50 rounded-xl mb-2 flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-[#6200ea]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <span class="text-[9px] font-bold text-gray-700">Mandir Darshan</span>
+                                </div>
+                                <div class="bg-white p-2 rounded-2xl shadow-md border border-gray-50 flex flex-col items-center">
+                                    <div class="w-full aspect-square bg-purple-50 rounded-xl mb-2 flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-[#6200ea]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                                    </div>
+                                    <span class="text-[9px] font-bold text-gray-700">Puja Darshan</span>
+                                </div>
+                                <div class="bg-white p-2 rounded-2xl shadow-md border border-gray-50 flex flex-col items-center">
+                                    <div class="w-full aspect-square bg-purple-50 rounded-xl mb-2 flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-[#6200ea]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                    </div>
+                                    <span class="text-[9px] font-bold text-gray-700">Guruhari Darshan</span>
+                                </div>
+                                <div class="bg-white p-2 rounded-2xl shadow-md border border-gray-50 flex flex-col items-center">
+                                    <div class="w-full aspect-square bg-purple-50 rounded-xl mb-2 flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-[#6200ea]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                                    </div>
+                                    <span class="text-[9px] font-bold text-gray-700">Festivals</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center px-2 pb-4">
+                    <h3 class="text-xl font-bold mb-2 text-gray-900" data-i18n="feature_1_title">Daily Darshan</h3>
+                    <p class="text-sm text-gray-500 leading-relaxed" data-i18n="feature_1_desc">Get divine darshan and Mangala Aarti benefits daily from your favorite Mandir.</p>
+                </div>
+            </div>
+
+            <!-- Feature 2: Kirtan Playlist -->
+            <div class="feature-card flex flex-col items-center">
+                <div class="phone-mockup mb-8">
+                    <!-- Status Bar -->
+                    <div class="phone-status-bar bg-[#6200ea] text-white">
+                        <span>9:41</span>
+                        <div class="flex gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                        </div>
+                    </div>
+                    <!-- App Bar -->
+                    <div class="phone-top-bar bg-[#6200ea] text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        <span class="font-bold text-sm">Kirtan Muktavali</span>
+                    </div>
+                    <!-- Content -->
+                    <div class="p-4 bg-gray-50 h-full">
+                        <div class="bg-white rounded-xl p-2 mb-4 shadow-sm flex items-center gap-2 border border-gray-100">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <div class="h-2 w-24 bg-gray-100 rounded"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center border border-gray-100">
+                                <svg class="w-6 h-6 text-[#6200ea] mb-2" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
+                                <span class="text-[10px] font-bold">Arati</span>
+                            </div>
+                            <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center border border-gray-100">
+                                <svg class="w-6 h-6 text-[#6200ea] mb-2" fill="currentColor" viewBox="0 0 20 20"><path d="M9 18a.75.75 0 00.75-.75V7.5a.75.75 0 00-1.5 0v9.75c0 .414.336.75.75.75zm3 0a.75.75 0 00.75-.75V10.5a.75.75 0 00-1.5 0v6.75c0 .414.336.75.75.75zm3 0a.75.75 0 00.75-.75v-1.5a.75.75 0 00-1.5 0v1.5c0 .414.336.75.75.75zm-9 0a.75.75 0 00.75-.75v-4.5a.75.75 0 00-1.5 0v4.5c0 .414.336.75.75.75z"></path></svg>
+                                <span class="text-[10px] font-bold">Dhun</span>
+                            </div>
+                            <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center border border-gray-100">
+                                <svg class="w-6 h-6 text-[#6200ea] mb-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"></path></svg>
+                                <span class="text-[10px] font-bold">Prathana</span>
+                            </div>
+                            <div class="bg-[#e0e7ff] rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center border border-blue-100">
+                                <svg class="w-6 h-6 text-blue-600 mb-2" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path></svg>
+                                <span class="text-[10px] font-bold text-blue-800">All Kirtans</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center px-2 pb-4">
+                    <h3 class="text-xl font-bold mb-2 text-gray-900" data-i18n="feature_2_title">Kirtan Playlist</h3>
+                    <p class="text-sm text-gray-500 leading-relaxed" data-i18n="feature_2_desc">Listen to a soul-stirring collection of sweet devotional songs and kirtans anywhere.</p>
+                </div>
+            </div>
+
+            <!-- Feature 3: Sabha Saar -->
+            <div class="feature-card flex flex-col items-center">
+                <div class="phone-mockup mb-8">
+                    <!-- Status Bar -->
+                    <div class="phone-status-bar bg-[#6200ea] text-white">
+                        <span>9:41</span>
+                        <div class="flex gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>
+                        </div>
+                    </div>
+                    <!-- App Bar -->
+                    <div class="phone-top-bar bg-[#6200ea] text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        <span class="font-bold text-lg">Sabha Saar</span>
+                    </div>
+                    <!-- Content -->
+                    <div class="p-4 bg-gray-50 h-full space-y-3">
+                        <div class="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 border border-gray-100">
+                            <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="h-2 w-3/4 bg-gray-200 rounded mb-1"></div>
+                                <div class="h-1.5 w-1/4 bg-gray-100 rounded"></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 border border-gray-100">
+                            <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="h-2 w-2/3 bg-gray-200 rounded mb-1"></div>
+                                <div class="h-1.5 w-1/3 bg-gray-100 rounded"></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 border border-gray-100">
+                            <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="h-2 w-1/2 bg-gray-200 rounded mb-1"></div>
+                                <div class="h-1.5 w-1/5 bg-gray-100 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center px-2 pb-4">
+                    <h3 class="text-xl font-bold mb-2 text-gray-900" data-i18n="feature_3_title">Sabha Saar</h3>
+                    <p class="text-sm text-gray-500 leading-relaxed" data-i18n="feature_3_desc">Read short and accurate summaries of daily assemblies and spiritual discourses.</p>
+                </div>
+            </div>
+
+            <!-- Feature 4: Photo Gallery -->
+            <div class="feature-card flex flex-col items-center">
+                <div class="phone-mockup mb-8">
+                    <!-- Status Bar -->
+                    <div class="phone-status-bar bg-[#6200ea] text-white">
+                        <span>9:41</span>
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                    </div>
+                    <!-- App Bar -->
+                    <div class="phone-top-bar bg-[#6200ea] text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        <span class="font-bold text-lg">Mandir Darshan</span>
+                    </div>
+                    <div class="bg-white h-full">
+                        <div class="grid grid-cols-2 gap-1 p-1">
+                            <!-- Row 1 -->
+                            <div class="aspect-square bg-purple-50"></div>
+                            <div class="aspect-square bg-blue-50"></div>
+
+                            <!-- Row 2 -->
+                            <div class="aspect-square bg-pink-50"></div>
+                            <a href="https://www.hinduismtoday.com/hpi/2024/12/06/baps-hindu-mandir-in-paris-to-open-in-2026/" target="_blank" class="aspect-square bg-yellow-50 block hover:opacity-80 transition"></a>
+
+                            <!-- Row 3 -->
+                            <div class="aspect-square bg-green-50"></div>
+                            <a href="https://www.bapsmandirparis.fr/" target="_blank" class="aspect-square bg-indigo-50 block hover:opacity-80 transition"></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center px-2 pb-4">
+                    <h3 class="text-xl font-bold mb-2 text-gray-900" data-i18n="feature_4_title">Photo Gallery</h3>
+                    <p class="text-sm text-gray-500 leading-relaxed" data-i18n="feature_4_desc">Amazing collection of photos of festivals, rituals and beautiful idols.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Guide Section -->
+    <section class="py-20 px-6 max-w-5xl mx-auto">
+        <div class="bg-white rounded-[2rem] shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
+            <div class="p-10 md:w-2/3">
+                <h2 class="text-3xl font-bold mb-10 text-gray-800" data-i18n="install_title">How to Install?</h2>
+                <div class="space-y-8">
+                    <div class="flex gap-4">
+                        <div class="install-step-number">1</div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-1" data-i18n="step_1_title">Download APK</h4>
+                            <p class="text-gray-600 text-sm" data-i18n="step_1_desc">Click the button above to download the file.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="install-step-number">2</div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-1" data-i18n="step_2_title">Enable Unknown Sources</h4>
+                            <p class="text-gray-600 text-sm" data-i18n="step_2_desc">Go to settings and allow 'Install Unknown Apps'.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="install-step-number">3</div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-1" data-i18n="step_3_title">Complete Installation</h4>
+                            <p class="text-gray-600 text-sm" data-i18n="step_3_desc">Click on the downloaded file to install.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-indigo-50 flex items-center justify-center p-10 md:w-1/3 border-l border-indigo-100">
+                <div class="text-center">
+                    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <p class="text-indigo-900 font-semibold" data-i18n="secure_title">100% Secure</p>
+                    <p class="text-indigo-600 text-xs" data-i18n="secure_subtitle">Verified APK</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Version History Section -->
+    <section class="py-12 px-6 max-w-4xl mx-auto">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800 text-center" data-i18n="history_title">Version History</h3>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-bottom border-gray-100">
+                        <th class="p-4 font-bold text-gray-700" data-i18n="th_version">Version</th>
+                        <th class="p-4 font-bold text-gray-700" data-i18n="th_date">Date</th>
+                        <th class="p-4 font-bold text-gray-700" data-i18n="th_size">Size</th>
+                        <th class="p-4 font-bold text-gray-700 text-right" data-i18n="th_download">Download</th>
+                    </tr>
+                </thead>
+                <tbody id="version-history">
+                    <!-- History items will appear here -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-center md:text-left">
+                <h2 class="text-2xl font-bold mb-1">Gokudiyugam</h2>
+                <p class="opacity-50 text-xs tracking-widest uppercase" data-i18n="footer_tagline">Spiritual Awareness App</p>
+            </div>
+            <div class="text-center md:text-right">
+                <p class="text-sm opacity-60" data-i18n="footer_copy">© 2026 Gokudiyugam Team. All rights reserved.</p>
+                <p class="text-[10px] opacity-30 mt-1" data-i18n="footer_slogan">Satsang, Seva, and Smaran at your fingertips.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK Modular -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, setDoc, increment, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Your Firebase config (extrapolated from google-services.json)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEfon79kgebeUDNTjYSoCOctxH90cEWjI",
+            authDomain: "gokudiyugam.firebaseapp.com",
+            projectId: "gokudiyugam",
+            storageBucket: "gokudiyugam.firebasestorage.app",
+            messagingSenderId: "728177722635",
+            appId: "1:728177722635:android:413efd437a7a5c9f0ace0e"
         };
-        firebase.initializeApp(config);
-        const auth = firebase.auth();
-        // Crucial fix: connect to 'mediadata' database name
-        const db = firebase.app().firestore('mediadata');
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWhvllOpg_I_45hCpuibbe7eKfRKPWFN93NCAGNup6giseDkwl7PfqsdAkq_6jAlmT/exec";
-        let allUsers = [];
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        function showLoader(s) { document.getElementById('loader').classList.toggle('hidden', !s); }
+        // Real-time Updates (Latest Version)
+        const configRef = doc(db, "config", "app_latest");
+        let lastCount = 0;
 
-        function login() {
-            const e = document.getElementById('admin-email').value, p = document.getElementById('admin-password').value;
-            if(!e || !p) { alert("Please enter credentials"); return; }
-            showLoader(true);
-            auth.signInWithEmailAndPassword(e, p).catch(err => {
-                showLoader(false);
-                document.getElementById('login-error').innerText = err.message;
-            });
-        }
+        onSnapshot(configRef, (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                const downloadBtn = document.getElementById('download_btn_link');
+                document.getElementById('version_label').innerText = `Version: ${data.version_name}`;
+                downloadBtn.href = data.download_url;
+                downloadBtn.setAttribute('download', `Gokudiyugam_v${data.version_name}.apk`);
 
-        function logout() { auth.signOut().then(() => location.reload()); }
-
-        function filterUsers() {
-            const term = document.getElementById('user-search').value.toLowerCase();
-            const rows = document.querySelectorAll('#users-table-body tr');
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(term) ? '' : 'none';
-            });
-        }
-
-        function updateRole(id, role) {
-            if(!role || !confirm("Update user role to " + role + "?")) return;
-            showLoader(true);
-            db.collection('users').doc(id).update({role: role}).then(() => {
-                const user = allUsers.find(u => u.id === id);
-                fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({
-                        uid: id, email: user.email, role: role,
-                        firstName: user.name || "", lastName: "", middleName: "", mobileNumber: "", dob: "", gender: "", password: ""
-                    })
-                }).then(() => {
-                    showLoader(false);
-                    alert("Updated successfully!");
-                }).catch(() => {
-                    showLoader(false);
-                    alert("Sync partially failed.");
-                });
-            }).catch(err => { showLoader(false); alert(err.message); });
-        }
-
-        function loadStats() {
-            // Live Stats Update
-            db.collection('users').onSnapshot(snap => {
-                document.getElementById('count-users').innerText = snap.size;
-                let online = 0;
-                snap.forEach(doc => { if(doc.data().isOnline) online++; });
-                document.getElementById('count-online').innerText = online;
-            });
-            db.collection('mediadata').onSnapshot(snap => {
-                document.getElementById('count-media').innerText = snap.size;
-            });
-        }
-
-        function loadUsers() {
-            db.collection('users').onSnapshot(snap => {
-                allUsers = [];
-                const tbody = document.getElementById('users-table-body');
-                tbody.innerHTML = '';
-                snap.forEach(doc => {
-                    const u = {id: doc.id, ...doc.data()};
-                    allUsers.push(u);
-                    const status = u.isOnline ? '<span class="online-dot"></span>' : '<span class="offline-dot"></span>';
-                    const currentRole = u.role || 'NORMAL';
-                    tbody.innerHTML += `<tr>
-                        <td>${status}</td>
-                        <td>${u.email || 'No Email'}</td>
-                        <td>${u.name || 'No Name'}</td>
-                        <td>
-                            <select class="form-select form-select-sm" onchange="updateRole('${u.id}',this.value)">
-                                <option value="NORMAL" ${currentRole==='NORMAL'?'selected':''}>NORMAL</option>
-                                <option value="HOST" ${currentRole==='HOST'?'selected':''}>HOST</option>
-                                <option value="SUB_HOST" ${currentRole==='SUB_HOST'?'selected':''}>SUB_HOST</option>
-                            </select>
-                        </td>
-                    </tr>`;
-                });
-            });
-        }
-
-        function showSection(sec) {
-            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.list-group-item').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + sec).classList.add('active');
-            document.getElementById(sec + '-section').classList.remove('hidden');
-        }
-
-        auth.onAuthStateChanged(user => {
-            if(user) {
-                document.getElementById('login-container').classList.add('hidden');
-                document.getElementById('main-nav').classList.remove('hidden');
-                document.getElementById('dashboard-container').classList.remove('hidden');
-                document.getElementById('admin-name').innerText = user.email;
-                loadStats();
-                loadUsers();
+                // Visitor count animation
+                const count = data.visitor_count || 0;
+                if (lastCount === 0) {
+                    document.getElementById('counter').innerText = count.toLocaleString();
+                    lastCount = count;
+                } else if (count !== lastCount) {
+                    animateValue(document.getElementById('counter'), lastCount, count, 1500);
+                    lastCount = count;
+                }
             }
-            showLoader(false);
+            document.getElementById('loading-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
         });
+
+        // Real-time Updates (Version History)
+        const historyQuery = query(collection(db, "app_versions"), orderBy("timestamp", "desc"));
+        onSnapshot(historyQuery, (querySnapshot) => {
+            let historyHtml = "";
+            querySnapshot.forEach((doc) => {
+                const v = doc.data();
+                const date = v.timestamp ? new Date(v.timestamp).toLocaleDateString(document.documentElement.lang === 'gu' ? 'gu-IN' : 'en-IN') : 'N/A';
+                const size = v.download_size ? `${v.download_size} MB` : '-';
+                historyHtml += `
+                    <tr class="border-t border-gray-50 hover:bg-gray-50 transition">
+                        <td class="p-4 font-semibold text-gray-800">${v.version_name}</td>
+                        <td class="p-4 text-gray-600 text-sm">${date}</td>
+                        <td class="p-4 text-gray-600 text-sm">${size}</td>
+                        <td class="p-4 text-right">
+                            <a href="${v.download_url}" download="Gokudiyugam_v${v.version_name}.apk" class="text-[#6200ea] font-medium hover:underline text-sm" data-i18n="th_download">Download</a>
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('version-history').innerHTML = historyHtml || '<tr><td colspan="4" class="p-8 text-center text-gray-400">No history available</td></tr>';
+        });
+
+        // Increment Visitor Count (Every page view / refresh)
+        // User requested that every single visit (including from the same user) increments the counter
+        setDoc(configRef, {
+            visitor_count: increment(1)
+        }, { merge: true }).catch(err => {
+            console.error("Increment failed, document might not exist, trying update:", err);
+            updateDoc(configRef, { visitor_count: increment(1) });
+        });
+
+        // Global functions for language switcher
+        window.setLanguage = (lang) => {
+            document.documentElement.lang = lang;
+            localStorage.setItem('preferred_lang', lang);
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`lang-${lang}`);
+            if(activeBtn) activeBtn.classList.add('active');
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    element.innerText = translations[lang][key];
+                }
+            });
+        };
+
+        // Translations Data
+        const translations = {
+            en: {
+                hero_subtitle: "The only app spreading divine memories of God and Saints. Download now and connect with spirituality.",
+                download_btn: "Download APK",
+                visitors: "Visitors",
+                features_title: "App Features",
+                feature_1_title: "Daily Darshan",
+                feature_1_desc: "Get divine darshan and Mangala Aarti benefits daily.",
+                feature_2_title: "Kirtan Playlist",
+                feature_2_desc: "Listen to a collection of sweet devotional songs and kirtans anywhere.",
+                feature_3_title: "Sabha Saar",
+                feature_3_desc: "Read short and accurate summaries of daily assemblies.",
+                feature_4_title: "Photo Gallery",
+                feature_4_desc: "Amazing collection of photos of festivals and beautiful idols.",
+                install_title: "How to Install?",
+                step_1_title: "Download APK",
+                step_1_desc: "Click the button above to download the file.",
+                step_2_title: "Enable Unknown Sources",
+                step_2_desc: "Go to settings and allow 'Install Unknown Apps'.",
+                step_3_title: "Complete Installation",
+                step_3_desc: "Click on the downloaded file to install.",
+                secure_title: "100% Secure",
+                secure_subtitle: "Verified APK",
+                history_title: "Version History",
+                th_version: "Version",
+                th_date: "Date",
+                th_size: "Size",
+                th_download: "Download",
+                footer_tagline: "Spiritual Awareness App",
+                footer_copy: "© 2026 Gokudiyugam Team. All rights reserved.",
+                footer_slogan: "Satsang, Seva, and Smaran at your fingertips."
+            },
+            gu: {
+                hero_subtitle: "ભગવાન અને સંતોની દિવ્ય સ્મૃતિઓ પ્રસરાવતી એકમાત્ર એપ. હવે જ ડાઉનલોડ કરો અને આધ્યાત્મિકતા સાથે જોડાઓ.",
+                download_btn: "APK ડાઉનલોડ કરો",
+                visitors: "મુલાકાતીઓ",
+                features_title: "એપ્લિકેશનની વિશેષતાઓ",
+                feature_1_title: "દૈનિક દર્શન",
+                feature_1_desc: "ભગવાનના દિવ્ય દર્શન અને મંગળા આરતીનો લાવો દરરોજ મેળવો.",
+                feature_2_title: "કીર્તન પ્લેલિસ્ટ",
+                feature_2_desc: "મધુર ભક્તિ ગીતો અને કીર્તનોનું સંગ્રહ ગમે ત્યાં સાંભળો.",
+                feature_3_title: "સભા સાર",
+                feature_3_desc: "દરરોજ થતી સભાઓનો ટૂંકો અને સચોટ સાર વાંચી શકશો.",
+                feature_4_title: "ફોટો ગેલેરી",
+                feature_4_desc: "ઉત્સવો અને સુંદર મૂર્તિઓના ફોટાઓનું અદભૂત કલેક્શન.",
+                install_title: "કેવી રીતે ઇન્સ્ટોલ કરવું?",
+                step_1_title: "APK ડાઉનલોડ કરો",
+                step_1_desc: "ઉપર આપેલા બટન પર ક્લિક કરીને ફાઈલ ડાઉનલોડ કરો.",
+                step_2_title: "Unknown Sources ચાલુ કરો",
+                step_2_desc: "સેટિંગ્સમાં જઈને 'Install Unknown Apps' પરવાનગી આપો.",
+                step_3_title: "ઇન્સ્ટોલેશન પૂર્ણ કરો",
+                step_3_desc: "ડાઉનલોડ કરેલી ફાઈલ પર ક્લિક કરીને ઇન્સ્ટોલ કરો.",
+                secure_title: "100% સુરક્ષિત",
+                secure_subtitle: "Verified APK",
+                history_title: "જૂના વર્ઝન્સ (History)",
+                th_version: "વર્ઝન",
+                th_date: "તારીખ",
+                th_size: "સાઈઝ",
+                th_download: "ડાઉનલોડ",
+                footer_tagline: "Spiritual Awareness App",
+                footer_copy: "© 2026 Gokudiyugam Team. All rights reserved.",
+                footer_slogan: "સત્સંગ, સેવા અને સ્મરણ હવે તમારા મોબાઈલમાં."
+            },
+            hi: {
+                hero_subtitle: "भगवान और संतों की दिव्य यादें फैलाने वाला एकमात्र ऐप। अभी डाउनलोड करें और आध्यात्मिकता से जुड़ें।",
+                download_btn: "APK डाउनलोड करें",
+                visitors: "आगंतुक",
+                features_title: "ऐप की विशेषताएं",
+                feature_1_title: "दैनिक दर्शन",
+                feature_1_desc: "प्रतिदिन भगवान के दिव्य दर्शन और मंगला आरती का लाभ उठाएं।",
+                feature_2_title: "कीर्तन प्लेलिस्ट",
+                feature_2_desc: "कहीं भी मधुर भक्ति गीतों और कीर्तनों का संग्रह सुनें।",
+                feature_3_title: "सभा सार",
+                feature_3_desc: "दैनिक सभाओं का संक्षिप्त और सटीक सार पढ़ें।",
+                feature_4_title: "फोटो गैलरी",
+                feature_4_desc: "उत्सवों और सुंदर मूर्तियों की तस्वीरों का अद्भुत संग्रह।",
+                install_title: "कैसे इंस्टॉल करें?",
+                step_1_title: "APK डाउनलोड करें",
+                step_1_desc: "फ़ाइल डाउनलोड करने के लिए ऊपर दिए गए बटन पर क्लिक करें।",
+                step_2_title: "Unknown Sources चालू करें",
+                step_2_desc: "सेटिंग्स में जाएं और 'Install Unknown Apps' की अनुमति दें।",
+                step_3_title: "इंस्टॉलेशन पूरा करें",
+                step_3_desc: "इंस्टॉल करने के लिए डाउनलोड की गई फ़ाइल पर क्लिक करें।",
+                secure_title: "100% सुरक्षित",
+                secure_subtitle: "Verified APK",
+                history_title: "संस्करण इतिहास",
+                th_version: "संस्करण",
+                th_date: "तारीख",
+                th_size: "साइज",
+                th_download: "डाउनलोड",
+                footer_tagline: "Spiritual Awareness App",
+                footer_copy: "© 2026 Gokudiyugam Team. All rights reserved.",
+                footer_slogan: "सत्संग, सेवा और स्मरण अब आपकी उंगलियों पर।"
+            }
+        };
+
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString();
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Init language
+        window.setLanguage(localStorage.getItem('preferred_lang') || 'en');
     </script>
 </body>
 </html>
