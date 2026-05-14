@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gokudiyugam - Detailed Project Workflows</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #1c1e21; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .master-controls { position: sticky; top: 10px; z-index: 100; display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-primary:hover { background-color: #0056b3; transform: translateY(-1px); }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-danger:hover { background-color: #c82333; }
+
+        .btn-small { font-size: 13px; padding: 6px 12px; border-radius: 4px; }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 40px; overflow: hidden; border: 1px solid #e1e4e8; page-break-inside: avoid; }
+        .card-header { padding: 15px 25px; background: #f8f9fa; border-bottom: 1px solid #e1e4e8; display: flex; justify-content: space-between; align-items: center; }
+        .card-title { margin: 0; font-size: 1.4rem; color: #1a73e8; font-weight: bold; }
+        .header-actions { display: flex; gap: 8px; }
+        .card-body { padding: 25px; background: white; }
+
+        .diagram-container { padding: 20px; background: #fdfdfd; border: 1px dashed #ddd; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: center; }
+        .mermaid { width: 100%; text-align: center; }
+
+        .details-box { background: #f9f9f9; padding: 20px; border-left: 5px solid #007bff; border-radius: 4px; }
+        .details-box h3 { margin-top: 0; color: #333; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .details-box ul { padding-left: 20px; margin-bottom: 0; }
+        .details-box li { margin-bottom: 8px; line-height: 1.5; color: #444; }
+
+        .tech-tags { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .tag { background: #e8f0fe; color: #1967d2; padding: 4px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: 600; }
+
+        @media print { .master-controls, .header-actions { display: none; } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Gokudiyugam Project - Technical Report Workflows</h1>
+        <p>Detailed system documentation for project submission</p>
+    </div>
+
+    <div class="master-controls">
+        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
+        <button class="btn btn-success" onclick="downloadFull('JPG')"><i class="fas fa-file-image"></i> Full JPG</button>
+        <button class="btn btn-danger" onclick="downloadFull('PDF')"><i class="fas fa-file-pdf"></i> Full PDF</button>
+    </div>
+
+    <div id="full-page" class="container">
+
+        <!-- 1. System Architecture -->
+        <div class="card" id="section-architecture">
+            <div class="card-header">
+                <h2 class="card-title">1. System Architecture Overview</h2>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="downloadSection('section-architecture', 'System_Architecture', 'JPG')">JPG</button>
+                    <button class="btn btn-danger btn-small" onclick="downloadSection('section-architecture', 'System_Architecture', 'PDF')">PDF</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph TD
+                            subgraph "Frontend (Mobile App)"
+                                UI[Jetpack Compose / M3]
+                                VM[View Models]
+                                Repo[Repository]
+                            end
+                            subgraph "Security & AI"
+                                Sec[Firebase App Check]
+                                AI[Gemini 1.5 Flash]
+                            end
+                            subgraph "Backend (Cloud)"
+                                Auth[Firebase Auth]
+                                DB[(Firestore)]
+                                ST[(Cloud Storage)]
+                            end
+                            UI --- VM --- Repo
+                            Repo --- Auth & DB & ST
+                            Repo --- AI
+                            DB --- Sec
+                    </div>
+                </div>
+                <div class="details-box">
+                    <h3>Technical Specifications:</h3>
+                    <ul>
+                        <li><strong>Frontend:</strong> Built with 100% Kotlin and Jetpack Compose for a modern, reactive UI. Uses MVVM architecture for clean separation of concerns.</li>
+                        <li><strong>AI Integration:</strong> Leverages Gemini 1.5 Flash for intelligent content processing and Google ML Kit for on-device language translation.</li>
+                        <li><strong>Backend:</strong> Fully serverless architecture using Firebase Ecosystem (Firestore for NoSQL data, Cloud Storage for media).</li>
+                    </ul>
+                    <div class="tech-tags">
+                        <span class="tag">Kotlin</span> <span class="tag">Jetpack Compose</span> <span class="tag">Firebase</span> <span class="tag">Gemini AI</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Role-Based Navigation -->
+        <div class="card" id="section-navigation">
+            <div class="card-header">
+                <h2 class="card-title">2. Role-Based Navigation Flow</h2>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="downloadSection('section-navigation', 'Role_Navigation', 'JPG')">JPG</button>
+                    <button class="btn btn-danger btn-small" onclick="downloadSection('section-navigation', 'Role_Navigation', 'PDF')">PDF</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph TD
+                            Start[Splash Screen] --> Login[Firebase Auth]
+                            Login --> RoleCheck{Role Check}
+                            RoleCheck -->|Devotee| UserDashboard[User Dashboard]
+                            RoleCheck -->|Admin| AdminHub[Admin Control Panel]
+                            UserDashboard --> Features[Darshan, Media, News, Sabha]
+                            AdminHub --> Management[User Monitor, Content Upload, Sabha Update]
+                    </div>
+                </div>
+                <div class="details-box">
+                    <h3>Navigation Details:</h3>
+                    <ul>
+                        <li><strong>Authentication:</strong> Integrated with Google ID Credentials API and Firebase Authentication for secure sign-in.</li>
+                        <li><strong>Dynamic Routing:</strong> The app detects user roles (Admin/User) from Firestore upon login and redirects.</li>
+                    </ul>
+                    <div class="tech-tags">
+                        <span class="tag">RBAC</span> <span class="tag">Navigation Compose</span> <span class="tag">Google Auth</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Firebase Ecosystem -->
+        <div class="card" id="section-firebase">
+            <div class="card-header">
+                <h2 class="card-title">3. Firebase Eco System</h2>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="downloadSection('section-firebase', 'Firebase_Ecosystem', 'JPG')">JPG</button>
+                    <button class="btn btn-danger btn-small" onclick="downloadSection('section-firebase', 'Firebase_Ecosystem', 'PDF')">PDF</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph LR
+                            App((Gokudiyugam))
+                            App --> Auth[Authentication]
+                            App --> FS[(Firestore DB)]
+                            App --> ST[(Cloud Storage)]
+                            App --> FCM[Cloud Messaging]
+                            App --> CHK[App Check]
+                    </div>
+                </div>
+                <div class="details-box">
+                    <h3>Firebase Services:</h3>
+                    <ul>
+                        <li><strong>Firestore:</strong> Stores real-time data for Sabhas, News, and User profiles.</li>
+                        <li><strong>App Check:</strong> Protects backend resources from unauthorized access.</li>
+                    </ul>
+                    <div class="tech-tags">
+                        <span class="tag">Firestore</span> <span class="tag">FCM</span> <span class="tag">Cloud Storage</span> <span class="tag">App Check</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ER Diagram -->
+        <div class="card" id="section-erd">
+            <div class="card-header">
+                <h2 class="card-title">4. Entity Relationship (Firestore)</h2>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="downloadSection('section-erd', 'ERD_Firestore', 'JPG')">JPG</button>
+                    <button class="btn btn-danger btn-small" onclick="downloadSection('section-erd', 'ERD_Firestore', 'PDF')">PDF</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        erDiagram
+                            USERS ||--o{ FEEDBACK : "submits"
+                            USERS { string uid, string role, string name }
+                            SABHAS { string id, string title, string time }
+                            MEDIA { string id, string url, string type }
+                    </div>
+                </div>
+                <div class="details-box">
+                    <h3>Data Schema:</h3>
+                    <ul>
+                        <li><strong>Users:</strong> Manages roles and profiles.</li>
+                        <li><strong>Sabhas:</strong> Detailed schedules with multi-language support.</li>
+                    </ul>
+                    <div class="tech-tags">
+                        <span class="tag">NoSQL</span> <span class="tag">Firestore</span> <span class="tag">Collections</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Sabha Timetable -->
+        <div class="card" id="section-sabha">
+            <div class="card-header">
+                <h2 class="card-title">5. Sabha Timetable Flow</h2>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="downloadSection('section-sabha', 'Sabha_Flow', 'JPG')">JPG</button>
+                    <button class="btn btn-danger btn-small" onclick="downloadSection('section-sabha', 'Sabha_Flow', 'PDF')">PDF</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph TD
+                            Admin[Admin Updates Sabha] --> AI{AI Engine}
+                            AI --> ML[ML Kit - Gujarati]
+                            AI --> Lipi[Phonetic Mapping]
+                            ML & Lipi --> DB[(Firestore)]
+                            DB --> FCM[FCM Notification]
+                    </div>
+                </div>
+                <div class="details-box">
+                    <h3>Smart Timetable:</h3>
+                    <ul>
+                        <li><strong>AI Translation:</strong> Hybrid approach using Google ML Kit and Custom Lipi Engine.</li>
+                        <li><strong>Real-time Sync:</strong> Instant updates via Firestore listeners.</li>
+                    </ul>
+                    <div class="tech-tags">
+                        <span class="tag">ML Kit</span> <span class="tag">Custom Engine</span> <span class="tag">FCM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Access Control -->
+        <div class="card" id="section-access">
+            <div class="card-header">
+                <h2 class="card-title">6. Access Control Security</h2>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="downloadSection('section-access', 'Access_Control', 'JPG')">JPG</button>
+                    <button class="btn btn-danger btn-small" onclick="downloadSection('section-access', 'Access_Control', 'PDF')">PDF</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph TD
+                            Req[Access Request] --> P1{Play Integrity}
+                            P1 -->|Pass| P2{Firebase Auth}
+                            P2 -->|Pass| P3{Biometrics}
+                            P3 -->|Pass| P4{Role Check}
+                            P4 --> Access[Access Granted]
+                    </div>
+                </div>
+                <div class="details-box">
+                    <h3>Security Layers:</h3>
+                    <ul>
+                        <li><strong>Play Integrity:</strong> Ensures the app is genuine.</li>
+                        <li><strong>Biometric Auth:</strong> Fingerprint/Face ID for Admin actions.</li>
+                    </ul>
+                    <div class="tech-tags">
+                        <span class="tag">Play Integrity</span> <span class="tag">Biometrics</span> <span class="tag">Security</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Media Players -->
+        <div class="card" id="section-media">
+            <div class="card-header">
+                <h2 class="card-title">7. Audio & Video Players</h2>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="downloadSection('section-media', 'Media_Players', 'JPG')">JPG</button>
+                    <button class="btn btn-danger btn-small" onclick="downloadSection('section-media', 'Media_Players', 'PDF')">PDF</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph LR
+                            User --> Select{Media Choice}
+                            Select --> Audio[ExoPlayer Audio]
+                            Select --> Video[YouTube Video]
+                            Audio --> Svc[Foreground Service]
+                    </div>
+                </div>
+                <div class="details-box">
+                    <h3>Media Ecosystem:</h3>
+                    <ul>
+                        <li><strong>Audio:</strong> Media3 ExoPlayer with background service.</li>
+                        <li><strong>Video:</strong> YouTube Player Core integration.</li>
+                    </ul>
+                    <div class="tech-tags">
+                        <span class="tag">Media3</span> <span class="tag">ExoPlayer</span> <span class="tag">YouTube API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #7f8c8d; font-size: 13px;">
+            © 2024 Gokudiyugam Project Documentation - BAPS Badalpur
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+
+        async function downloadSection(sectionId, fileName, type) {
+            const element = document.getElementById(sectionId);
+            const actions = element.querySelector('.header-actions');
+            actions.style.visibility = 'hidden';
+
+            const canvas = await html2canvas(element, { scale: 2, backgroundColor: "#ffffff" });
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+            if (type === 'JPG') {
+                const link = document.createElement('a');
+                link.download = `Gokudiyugam_${fileName}.jpg`;
+                link.href = imgData;
+                link.click();
+            } else {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: canvas.width > canvas.height ? 'l' : 'p',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`Gokudiyugam_${fileName}.pdf`);
+            }
+            actions.style.visibility = 'visible';
+        }
+
+        async function downloadFull(type) {
+            const element = document.getElementById('full-page');
+            const actions = document.querySelectorAll('.header-actions');
+            actions.forEach(a => a.style.visibility = 'hidden');
+
+            const canvas = await html2canvas(element, { scale: 1.5, backgroundColor: "#f0f2f5" });
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+
+            if (type === 'JPG') {
+                const link = document.createElement('a');
+                link.download = 'Gokudiyugam_Full_Report.jpg';
+                link.href = imgData;
+                link.click();
+            } else {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'p',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                pdf.save('Gokudiyugam_Full_Report.pdf');
+            }
+            actions.forEach(a => a.style.visibility = 'visible');
+        }
+    </script>
+</body>
+</html>

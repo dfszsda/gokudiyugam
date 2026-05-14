@@ -11,12 +11,12 @@ plugins {
 
 android {
     namespace = "com.example.gokudiyugam"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.example.gokudiyugam"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.9.2"
 
@@ -25,10 +25,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("C:/Users/flayb/OneDrive/Documents/Projects/Keys/gukudiyugam/gkays")
-            storePassword = "Ghost@4590"
+            storeFile = file("C:/Users/harig/Documents/keys/keys.jks")
+            storePassword = "Ghost@123"
             keyAlias = "key0"
-            keyPassword = "Ghost@4590"
+            keyPassword = "gHOST@123"
         }
     }
 
@@ -96,7 +96,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3)
-    implementation("androidx.navigation:navigation-compose:2.9.7")
+    implementation("androidx.navigation:navigation-compose:2.9.8")
     implementation(libs.espresso.core)
 
     // Firebase
@@ -135,9 +135,9 @@ dependencies {
     implementation(libs.androidx.biometric)
     
     // Media3 for Background Audio
-    implementation("androidx.media3:media3-exoplayer:1.9.3")
-    implementation("androidx.media3:media3-ui:1.9.3")
-    implementation("androidx.media3:media3-session:1.9.3")
+    implementation("androidx.media3:media3-exoplayer:1.10.1")
+    implementation("androidx.media3:media3-ui:1.10.1")
+    implementation("androidx.media3:media3-session:1.10.1")
     
     // AI Integration: Google Generative AI SDK
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
@@ -153,10 +153,10 @@ dependencies {
     implementation(libs.google.http.client.android)
     implementation(libs.google.http.client.gson)
 
-    implementation("io.grpc:grpc-okhttp:1.80.0")
-    implementation("io.grpc:grpc-android:1.80.0")
-    implementation("io.grpc:grpc-stub:1.80.0")
-    implementation("io.grpc:grpc-protobuf-lite:1.80.0")
+    implementation("io.grpc:grpc-okhttp:1.81.0")
+    implementation("io.grpc:grpc-android:1.81.0")
+    implementation("io.grpc:grpc-stub:1.81.0")
+    implementation("io.grpc:grpc-protobuf-lite:1.81.0")
 
     // YouTube Player Library
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")

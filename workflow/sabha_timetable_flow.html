@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gokudiyugam - Sabha Timetable Flow</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 1000px; width: 100%; margin-bottom: 20px; }
+        h1, h2 { color: #2c3e50; text-align: center; }
+        .controls { margin-bottom: 20px; text-align: center; }
+        button { padding: 12px 24px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+        button:hover { background-color: #2980b9; }
+        .diagram-section { margin-top: 30px; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
+        .mermaid { display: flex; justify-content: center; overflow-x: auto; width: 100%; }
+        .mermaid svg { max-width: 100% !important; height: auto !important; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button onclick="downloadJPG()">Download as JPG</button>
+    </div>
+
+    <div id="capture-area" class="container">
+        <h1>Gokudiyugam - Sabha Timetable Management Flow</h1>
+
+        <div class="diagram-section">
+            <div class="mermaid">
+                graph TD
+                    Start[Admin: Create/Edit Sabha] --> Details[Enter Title, Day, Time, Location]
+                    Details --> AI_Trans{AI Translation Engine}
+
+                    subgraph "Multi-Language Processing"
+                        AI_Trans --> MLKit[Google ML Kit: Natural Translation]
+                        AI_Trans --> Lipi[Custom Lipi: Phonetic Mapping]
+                    end
+
+                    MLKit --> Save[(Firestore DB)]
+                    Lipi --> Save
+
+                    Save --> Push[FCM Notification to Users]
+                    Save --> Fetch[User App: Fetch Latest Schedule]
+
+                    Fetch --> Display{Categorized Display}
+                    Display --> Yuva[Yuva Sabha]
+                    Display --> Bal[Bal Sabha]
+                    Display --> Mahila[Mahila Sabha]
+                    Display --> Premvati[Premvati Sabha]
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center; color: #7f8c8d; font-size: 12px;">
+            © 2024 Gokudiyugam Project - Sabha Flow
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose', flowchart: { useMaxWidth: true, htmlLabels: true } });
+        function downloadJPG() {
+            const area = document.getElementById('capture-area');
+            html2canvas(area, { scale: 2, backgroundColor: "#f4f7f6" }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'Gokudiyugam_Sabha_Flow.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
