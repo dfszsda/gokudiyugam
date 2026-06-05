@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gokudiyugam - Technical Report</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #1976D2;
+            --text-color: #333;
+            --bg-color: #f4f7f6;
+            --white: #ffffff;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+        }
+
+        h1 { color: var(--primary-color); margin: 0; }
+        h2 { color: var(--secondary-color); border-left: 5px solid var(--secondary-color); padding-left: 10px; margin-top: 30px; }
+        h3 { color: #555; }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .tech-card {
+            background: #fafafa;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .tech-card strong { color: var(--primary-color); display: block; margin-bottom: 5px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th { background-color: #f2f2f2; }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .no-print {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover { background-color: var(--secondary-color); }
+
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0; background-color: white; }
+            .container { box-shadow: none; border: none; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button onclick="window.print()">Download as PDF / Print</button>
+</div>
+
+<div class="container">
+    <header>
+        <h1>Gokudiyugam Project Technical Report</h1>
+        <p>Comprehensive Architecture and Implementation Details</p>
+    </header>
+
+    <section id="introduction">
+        <h2>1. Project Overview</h2>
+        <p>
+            <strong>Gokudiyugam</strong> is a specialized spiritual community application designed to provide devotees with seamless access to daily darshan, spiritual music (Kirtans), video discourses, and community updates. The application focuses on high-performance media delivery and a multilingual user experience.
+        </p>
+    </section>
+
+    <section id="tech-stack">
+        <h2>2. Core Technology Stack</h2>
+        <div class="tech-grid">
+            <div class="tech-card">
+                <strong>Frontend (UI/UX)</strong>
+                Jetpack Compose with Material Design 3. This provides a modern, declarative, and highly responsive user interface.
+            </div>
+            <div class="tech-card">
+                <strong>Language</strong>
+                Kotlin - Utilizing Coroutines and Flow for asynchronous operations and state management.
+            </div>
+            <div class="tech-card">
+                <strong>Backend Services</strong>
+                Firebase Suite (Authentication, Firestore, Realtime Database, Cloud Messaging, App Check).
+            </div>
+            <div class="tech-card">
+                <strong>Media Storage</strong>
+                Google Drive API (v3) - Integrated as a scalable and cost-effective cloud storage for high-quality media files.
+            </div>
+            <div class="tech-card">
+                <strong>AI & Machine Learning</strong>
+                Google ML Kit & Gemini SDK - Used for intelligent multilingual translations (English to Gujarati/Hindi) and potential content analysis.
+            </div>
+            <div class="tech-card">
+                <strong>Media Playback</strong>
+                Android Media3 (ExoPlayer) for background audio and Pierfrancesco Soffritti’s YouTube Player for video content.
+            </div>
+        </div>
+    </section>
+
+    <section id="architecture">
+        <h2>3. System Architecture</h2>
+        <p>The project follows the <strong>MVVM (Model-View-ViewModel)</strong> design pattern, ensuring a clean separation of concerns between the business logic and UI.</p>
+        <ul>
+            <li><strong>Model:</strong> Data classes represent users, kirtans, media items, and playlists.</li>
+            <li><strong>View:</strong> Composable functions in Jetpack Compose handle the display and user interactions.</li>
+            <li><strong>ViewModel:</strong> Manages state and interacts with repositories/services (e.g., <code>DriveViewModel</code>, <code>KirtanViewModel</code>).</li>
+        </ul>
+        <h3>Real-time Sync Strategy</h3>
+        <p>
+            The application uses a <strong>dual-database synchronization</strong> strategy. When media is uploaded via Google Drive, metadata is stored in both <strong>Firebase Firestore</strong> (for complex queries) and <strong>Firebase Realtime Database</strong> (for instant UI updates across all clients).
+        </p>
+    </section>
+
+    <section id="features">
+        <h2>4. Key Feature Implementations</h2>
+        <table>
+            <tr>
+                <th>Feature</th>
+                <th>Implementation Detail</th>
+            </tr>
+            <tr>
+                <td><strong>Role-Based Access (RBAC)</strong></td>
+                <td>Users are assigned roles (Host, Sub-Host, Guest, Normal) via Firestore. This controls upload/delete permissions.</td>
+            </tr>
+            <tr>
+                <td><strong>Background Audio</strong></td>
+                <td>Uses <code>Media3</code> and <code>MediaSession</code> to allow users to listen to Kirtans while the app is in the background or screen is locked.</td>
+            </tr>
+            <tr>
+                <td><strong>Google Drive Integration</strong></td>
+                <td>Direct integration with <code>GoogleAccountCredential</code> to upload files and generate public-reader URLs for playback.</td>
+            </tr>
+            <tr>
+                <td><strong>Smart Translation</strong></td>
+                <td>Combines Google ML Kit (for natural translation) with a custom "Barakhadi" mapping (transliteration) as a fallback for religious terminology.</td>
+            </tr>
+            <tr>
+                <td><strong>Push Notifications</strong></td>
+                <td>FCM (Firebase Cloud Messaging) topics are used to notify all users immediately when new Darshan or Kirtans are available.</td>
+            </tr>
+            <tr>
+                <td><strong>Dynamic Theming</strong></td>
+                <td>Users can customize the app's primary background colors and toggle Dark Mode, persisted via <code>SharedPreferences</code>.</td>
+            </tr>
+        </table>
+    </section>
+
+    <section id="security">
+        <h2>5. Security and Maintenance</h2>
+        <ul>
+            <li><strong>Firebase App Check:</strong> Protects backend resources from unauthorized traffic.</li>
+            <li><strong>Biometric Security:</strong> Provides an optional layer of security for administrative panels.</li>
+            <li><strong>Auto-Cleanup:</strong> A logic in <code>DriveViewModel</code> periodically cleans up expired content based on timestamps.</li>
+            <li><strong>ProGuard/R8:</strong> Enabled for release builds to minify code and optimize performance.</li>
+        </ul>
+    </section>
+
+    <section id="conclusion">
+        <h2>6. Conclusion</h2>
+        <p>
+            The Gokudiyugam app represents a robust integration of modern Android development tools. By leveraging cloud APIs like Google Drive alongside real-time databases, it achieves a scalable architecture capable of serving a global community with high-fidelity spiritual content.
+        </p>
+    </section>
+
+    <div class="footer">
+        <p>Generated for Gokudiyugam Project &copy; 2025</p>
+    </div>
+</div>
+
+</body>
+</html>

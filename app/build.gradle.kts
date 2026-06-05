@@ -18,17 +18,17 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.9.2"
+        versionName = "2.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
         create("release") {
-            storeFile = file("C:/Users/harig/Documents/keys/keys.jks")
+            storeFile = file("C:/Users/harig/OneDrive/Documents/keys/gokudiyugam")
             storePassword = "Ghost@123"
             keyAlias = "key0"
-            keyPassword = "gHOST@123"
+            keyPassword = "Ghost@123"
         }
     }
 
@@ -109,8 +109,11 @@ dependencies {
     implementation(libs.firebase.config)
     implementation(libs.firebase.messaging)
 
+    //noinspection LoginCredentials
     implementation(libs.androidx.credentials)
+    //noinspection LoginCredentials
     implementation(libs.androidx.credentials.play.services.auth)
+    //noinspection LoginCredentials
     implementation(libs.googleid)
     implementation(libs.androidx.compose.remote.creation.core)
     implementation(libs.androidx.compose.foundation)
@@ -141,7 +144,8 @@ dependencies {
     
     // AI Integration: Google Generative AI SDK
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
-    implementation("com.google.android.gms:play-services-auth:21.5.1")
+    //noinspection LoginCredentials
+    implementation("com.google.android.gms:play-services-auth:21.6.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
 
     // Google ML Kit Translation

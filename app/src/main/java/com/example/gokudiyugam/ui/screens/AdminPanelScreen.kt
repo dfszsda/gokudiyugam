@@ -98,6 +98,8 @@ fun AdminPanelScreen(
                             currentView == "home_slider" -> "Manage Home Slider"
                             currentView == "feedbacks" -> "Help & Feedback"
                             currentView == "lyrics_management" -> "Manage Kirtan Lyrics"
+                            currentView == "api_management" -> "Central API Management"
+                            currentView == "app_management" -> "App Management"
                             else -> "Admin Panel"
                         }, 
                         fontWeight = FontWeight.Bold 
@@ -146,6 +148,8 @@ fun AdminPanelScreen(
                         onFeedbacksClick = { currentView = "feedbacks" },
                         onLyricsManagementClick = { currentView = "lyrics_management" },
                         onMediaLibraryClick = onNavigateToMediaLibrary,
+                        onApiManagementClick = { currentView = "api_management" },
+                        onAppManagementClick = { currentView = "app_management" },
                         currentUserRole = currentUserRole,
                         userPermissions = userPermissions
                     )
@@ -161,6 +165,8 @@ fun AdminPanelScreen(
                 currentView == "home_slider" -> HomeSliderManagementView(isHost || userPermissions.contains("Admin: Home Slider"), googleAccount)
                 currentView == "feedbacks" -> AdminFeedbacksView()
                 currentView == "lyrics_management" -> AdminLyricsManagementView()
+                currentView == "api_management" -> ApiManagementScreen()
+                currentView == "app_management" -> ComingSoonScreen("App Management", onBack = { currentView = "main" })
             }
         }
     }
@@ -527,7 +533,7 @@ fun UserDetailView(
         Text("Screen Permissions", modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val screens = listOf("Kirtan", "Sabha", "Functions", "News", "Daily Darshan", "Sabha Saar", "Admin: Home Slider", "Admin: Accounts", "Admin: Media Library")
+            val screens = listOf("Kirtan", "Sabha", "Functions", "News", "Daily Darshan", "Sabha Saar", "Admin: Home Slider", "Admin: Accounts", "Admin: Media Library", "Admin: API Management")
             screens.forEach { screen ->
                 val hasPermission = permissions.contains(screen)
                 FilterChip(
@@ -1068,6 +1074,8 @@ fun AdminMainMenuView(
     onFeedbacksClick: () -> Unit,
     onLyricsManagementClick: () -> Unit,
     onMediaLibraryClick: () -> Unit, 
+    onApiManagementClick: () -> Unit,
+    onAppManagementClick: () -> Unit,
     currentUserRole: UserRole?,
     userPermissions: List<String> = emptyList()
 ) {
@@ -1081,6 +1089,16 @@ fun AdminMainMenuView(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // API Management - Only Host OR Sub-Host with permission
+        if (isHost || (isSubHost && userPermissions.contains("Admin: API Management"))) {
+            AdminMenuCard(
+                title = "API Management",
+                icon = Icons.Default.VpnKey,
+                description = "Manage YouTube and other service keys",
+                onClick = onApiManagementClick
+            )
+        }
+
         // Overview - Visible to both
         AdminMenuCard(
             title = "Overview",
@@ -1140,6 +1158,16 @@ fun AdminMainMenuView(
                 icon = Icons.Default.PermMedia,
                 description = "Manage photos, videos, audio and docs",
                 onClick = onMediaLibraryClick
+            )
+        }
+
+        // App Management - Only Host
+        if (isHost) {
+            AdminMenuCard(
+                title = "App Management",
+                icon = Icons.Default.SystemUpdate,
+                description = "Update APK and Manage Versioning",
+                onClick = onAppManagementClick
             )
         }
     }
